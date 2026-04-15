@@ -7,8 +7,9 @@ const path = require('path');
 
 const app = express();
 
-const authRoutes = require('./routes/auth.routes');
-app.use('/auth', authRoutes);
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Cấu hình Middleware
 app.use(express.json());
@@ -23,14 +24,13 @@ app.use(session({
     cookie: { secure: false } // Đặt là true nếu dùng HTTPS
 }));
 
-// Cấu hình View Engine (EJS)
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-
 // Kết nối Cơ sở dữ liệu MongoDB Atlas
 mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log('Đã kết nối thành công tới MongoDB Atlas!'))
     .catch(err => console.error('Lỗi kết nối MongoDB:', err));
+
+const authRoutes = require('./routes/auth.routes');
+app.use('/auth', authRoutes);
 
 // Route Test cơ bản
 app.get('/', (req, res) => {
