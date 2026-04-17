@@ -1,0 +1,73 @@
+<%- include('../partials/header') %>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold">Lịch sử giao dịch</h3>
+        <button class="btn btn-primary rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#manualModal">
+            + Thêm mới
+        </button>
+    </div>
+
+    <div class="list-group shadow-sm border-0">
+        
+        <div class="list-group-item list-group-item-action border-0 mb-2 py-3 shadow-sm rounded-4 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
+                    <i class="bi bi-cart"></i>
+                </div>
+                <div>
+                    <h6 class="fw-bold mb-0">Phở Bò Gánh</h6>
+                    <small class="text-muted">Hôm nay, 08:30 AM</small>
+                </div>
+            </div>
+            <div class="text-end">
+                <span class="fw-bold text-danger">- 45.000đ</span>
+            </div>
+        </div>
+
+        <div class="list-group-item list-group-item-action border-0 mb-2 py-3 shadow-sm rounded-4 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
+                    <i class="bi bi-cash-stack"></i>
+                </div>
+                <div>
+                    <h6 class="fw-bold mb-0">Tiền Lương</h6>
+                    <small class="text-muted">Hôm nay, 10:00 AM</small>
+                </div>
+            </div>
+            <div class="text-end">
+                <span class="fw-bold text-success">+ 15.000.000đ</span>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="modal fade" id="manualModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius: 20px;">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Thêm Giao Dịch</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label class="form-label">Số tiền</label>
+                        <input type="number" class="form-control" placeholder="Ví dụ: 50000">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Loại</label>
+                        <select class="form-select">
+                            <option value="chi">Chi tiêu (-)</option>
+                            <option value="thu">Thu nhập (+)</option>
+                        </select>
+                    </div>
+                    <button type="button" class="btn btn-primary w-100 py-2 rounded-pill">Lưu lại</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('../partials/footer') %>

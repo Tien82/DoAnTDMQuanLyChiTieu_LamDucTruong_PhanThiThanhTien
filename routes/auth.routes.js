@@ -44,3 +44,29 @@ router.get('/login', (req, res) => {
 });
 
 module.exports = router;
+
+// Xử lý Đăng nhập (POST)
+router.post('/login', async (req, res) => {
+    try {
+        const { tenDangNhap, matKhau } = req.body;
+
+        // 1. Tìm user trong Database
+        const user = await User.findOne({ tenDangNhap });
+        if (!user) return res.send('Tài khoản không tồn tại!');
+
+        // 2. Kiểm tra mật khẩu (So sánh bản nhập vào với bản đã mã hóa trong CSDL)
+        const isMatch = await bcrypt.compare(matKhau, user.matKhau);
+        if (!isMatch) return res.send('Sai mật khẩu ný ơi!');
+
+        // 3. TẠO SESSION (Lưu thông tin người dùng vào máy chủ)
+        req.session.userId = user._id;
+        req.session.username = user.hoVaTen;
+        req.session.hanMuc = user.hanMucThang;
+
+        // 4. Đăng nhập xong thì phi thẳng ra Dashboard
+        res.redirect('/dashboard');
+
+    } catch (err) {
+        res.status(500).send('Lỗi đăng nhập');
+    }
+});

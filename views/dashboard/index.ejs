@@ -1,0 +1,99 @@
+<%- include('../partials/header') %>
+
+<div class="container mt-4">
+    <div class="row g-4 mb-4">
+        <div class="col-lg-7">
+            <div class="card p-4 border-0 shadow-sm glass-card h-100">
+                <h2 class="fw-bold">Chào ný, <span class="text-primary"><%= user %></span>! 👋</h2>
+                <p class="text-muted small">Hôm nay ný muốn ghi chép chi tiêu bằng cách nào?</p>
+                
+                <div class="mt-4">
+                    <div class="d-flex justify-content-between mb-2 small">
+                        <span class="fw-semibold">Hạn mức tháng này</span>
+                        <span class="text-danger fw-bold">75%</span>
+                    </div>
+                    <div class="progress" style="height: 8px; border-radius: 10px;">
+                        <div class="progress-bar bg-danger progress-bar-striped progress-bar-animated" style="width: 75%"></div>
+                    </div>
+                    <small class="text-muted mt-2 d-block" style="font-size: 0.75rem;">Đã tiêu 3.750.000đ / 5.000.000đ</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-5">
+            <div class="row g-2 h-100">
+                <div class="col-4">
+                    <div class="card border-0 shadow-sm h-100 text-center p-2 d-flex align-items-center justify-content-center bg-primary text-white btn-action" id="btn-voice">
+                        <i class="bi bi-mic-fill fs-3 mb-1"></i>
+                        <span style="font-size: 0.7rem;" class="fw-bold">GIỌNG NÓI</span>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <label for="ocr-upload" class="card border-0 shadow-sm h-100 text-center p-2 d-flex align-items-center justify-content-center bg-success text-white btn-action" style="cursor: pointer;">
+                        <i class="bi bi-camera-fill fs-3 mb-1"></i>
+                        <span style="font-size: 0.7rem;" class="fw-bold">QUÉT BILL</span>
+                        <input type="file" id="ocr-upload" hidden accept="image/*">
+                    </label>
+                </div>
+                <div class="col-4">
+                    <div class="card border-0 shadow-sm h-100 text-center p-2 d-flex align-items-center justify-content-center bg-info text-white btn-action" data-bs-toggle="modal" data-bs-target="#manualModal">
+                        <i class="bi bi-pencil-square fs-3 mb-1"></i>
+                        <span style="font-size: 0.7rem;" class="fw-bold">NHẬP TAY</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card p-4 border-0 shadow-sm h-100">
+                <h5 class="fw-bold mb-4">Cơ cấu chi tiêu</h5>
+                <canvas id="expenseChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card p-4 border-0 shadow-sm h-100">
+                <h5 class="fw-bold mb-4">Vị trí chi tiêu</h5>
+                <div id="map" style="height: 300px; border-radius: 12px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="manualModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius: 20px;">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold">Nhập chi tiêu thủ công</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="/input/manual" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">SỐ TIỀN (VNĐ)</label>
+                        <input type="number" name="soTien" class="form-control form-control-lg border-0 bg-light" placeholder="0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">HẠNG MỤC</label>
+                        <select name="hangMuc" class="form-select border-0 bg-light">
+                            <option value="Ăn uống">Ăn uống</option>
+                            <option value="Di chuyển">Di chuyển</option>
+                            <option value="Mua sắm">Mua sắm</option>
+                            <option value="Giải trí">Giải trí</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">GHI CHÚ</label>
+                        <input type="text" name="ghiChu" class="form-control border-0 bg-light" placeholder="Ăn phở sáng...">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-3">LƯU GIAO DỊCH</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('../partials/footer') %>
+
