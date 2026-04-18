@@ -3,42 +3,52 @@
 <div class="container mt-4">
     <div class="row g-4 mb-4">
         <div class="col-lg-7">
-            <div class="card p-4 border-0 shadow-sm glass-card h-100">
-                <h2 class="fw-bold">Chào ný, <span class="text-primary"><%= user %></span>! 👋</h2>
-                <p class="text-muted small">Hôm nay ný muốn ghi chép chi tiêu bằng cách nào?</p>
+            <div class="card p-4 border-0 shadow-sm h-100" style="border-radius: 24px; background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);">
+                <h2 class="fw-bold">Chào Trường, <span class="text-primary"><%= user %></span>! 👋</h2>
+                <p class="text-muted">Hôm nay Trường muốn ghi chép chi tiêu bằng cách nào?</p>
                 
-                <div class="mt-4">
+                <div class="mt-4 p-3 bg-white rounded-4 shadow-sm border border-light">
                     <div class="d-flex justify-content-between mb-2 small">
-                        <span class="fw-semibold">Hạn mức tháng này</span>
-                        <span class="text-danger fw-bold">75%</span>
+                        <span class="fw-semibold text-secondary">Hạn mức tháng này</span>
+                        <span class="<%= phanTram > 80 ? 'text-danger' : 'text-primary' %> fw-bold">
+                            <%= phanTram %>%
+                        </span>
                     </div>
-                    <div class="progress" style="height: 8px; border-radius: 10px;">
-                        <div class="progress-bar bg-danger progress-bar-striped progress-bar-animated" style="width: 75%"></div>
+                    <div class="progress" style="height: 10px; border-radius: 10px; background-color: #e9ecef;">
+                        <div class="progress-bar <%= phanTram > 80 ? 'bg-danger' : 'bg-primary' %> progress-bar-striped progress-bar-animated" 
+                             style="width: <%= phanTram %>%"></div>
                     </div>
-                    <small class="text-muted mt-2 d-block" style="font-size: 0.75rem;">Đã tiêu 3.750.000đ / 5.000.000đ</small>
+                    <div class="d-flex justify-content-between mt-2">
+                        <small class="text-muted" style="font-size: 0.75rem;">
+                            Đã tiêu: <strong><%= tongChiTieu.toLocaleString('vi-VN') %>đ</strong>
+                        </small>
+                        <small class="text-muted" style="font-size: 0.75rem;">
+                            Hạn mức: <%= hanMuc.toLocaleString('vi-VN') %>đ
+                        </small>
+                    </div>
                 </div>
             </div>
         </div>
         
         <div class="col-lg-5">
-            <div class="row g-2 h-100">
+            <div class="row g-3 h-100">
                 <div class="col-4">
-                    <div class="card border-0 shadow-sm h-100 text-center p-2 d-flex align-items-center justify-content-center bg-primary text-white btn-action" id="btn-voice">
-                        <i class="bi bi-mic-fill fs-3 mb-1"></i>
-                        <span style="font-size: 0.7rem;" class="fw-bold">GIỌNG NÓI</span>
+                    <div class="card border-0 shadow-sm h-100 text-center p-3 btn-bento bg-primary text-white" id="btn-voice">
+                        <div class="icon-circle mb-2"><i class="bi bi-mic-fill fs-3"></i></div>
+                        <span class="fw-bold small">GIỌNG NÓI</span>
                     </div>
                 </div>
                 <div class="col-4">
-                    <label for="ocr-upload" class="card border-0 shadow-sm h-100 text-center p-2 d-flex align-items-center justify-content-center bg-success text-white btn-action" style="cursor: pointer;">
-                        <i class="bi bi-camera-fill fs-3 mb-1"></i>
-                        <span style="font-size: 0.7rem;" class="fw-bold">QUÉT BILL</span>
+                    <label for="ocr-upload" class="card border-0 shadow-sm h-100 text-center p-3 btn-bento bg-success text-white">
+                        <div class="icon-circle mb-2"><i class="bi bi-camera-fill fs-3"></i></div>
+                        <span class="fw-bold small">QUÉT BILL</span>
                         <input type="file" id="ocr-upload" hidden accept="image/*">
                     </label>
                 </div>
                 <div class="col-4">
-                    <div class="card border-0 shadow-sm h-100 text-center p-2 d-flex align-items-center justify-content-center bg-info text-white btn-action" data-bs-toggle="modal" data-bs-target="#manualModal">
-                        <i class="bi bi-pencil-square fs-3 mb-1"></i>
-                        <span style="font-size: 0.7rem;" class="fw-bold">NHẬP TAY</span>
+                    <div class="card border-0 shadow-sm h-100 text-center p-3 btn-bento bg-info text-white" data-bs-toggle="modal" data-bs-target="#manualModal">
+                        <div class="icon-circle mb-2"><i class="bi bi-pencil-square fs-3"></i></div>
+                        <span class="fw-bold small">NHẬP TAY</span>
                     </div>
                 </div>
             </div>
@@ -47,16 +57,23 @@
 
     <div class="row g-4">
         <div class="col-md-6">
-            <div class="card p-4 border-0 shadow-sm h-100">
-                <h5 class="fw-bold mb-4">Cơ cấu chi tiêu</h5>
-                <canvas id="expenseChart"></canvas>
+            <div class="card p-4 border-0 shadow-sm h-100 rounded-4">
+                <h5 class="fw-bold mb-4"><i class="bi bi-pie-chart-fill me-2 text-warning"></i>Cơ cấu chi tiêu</h5>
+                <div class="chart-container" style="position: relative; height:300px;">
+                    <canvas id="expenseChart"></canvas>
+                </div>
             </div>
         </div>
         
         <div class="col-md-6">
-            <div class="card p-4 border-0 shadow-sm h-100">
-                <h5 class="fw-bold mb-4">Vị trí chi tiêu</h5>
-                <div id="map" style="height: 300px; border-radius: 12px;"></div>
+            <div class="card p-4 border-0 shadow-sm h-100 rounded-4">
+                <h5 class="fw-bold mb-4"><i class="bi bi-geo-alt-fill me-2 text-danger"></i>Vị trí gần đây</h5>
+                <div id="map" style="height: 300px; border-radius: 16px; background-color: #f8f9fa;" class="d-flex align-items-center justify-content-center border">
+                    <div class="text-center text-muted">
+                        <i class="bi bi-map fs-1"></i>
+                        <p class="small">Bản đồ sẽ hiển thị khi Trường có dữ liệu vị trí</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -64,36 +81,93 @@
 
 <div class="modal fade" id="manualModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow" style="border-radius: 20px;">
-            <div class="modal-header border-0">
-                <h5 class="modal-title fw-bold">Nhập chi tiêu thủ công</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content border-0 shadow" style="border-radius: 24px;">
+            <div class="modal-header border-0 px-4 pt-4">
+                <h5 class="modal-title fw-bold">Thêm giao dịch mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                <form action="/input/manual" method="POST">
+            <div class="modal-body p-4">
+                <form action="/dashboard/input/manual" method="POST">
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-muted">SỐ TIỀN (VNĐ)</label>
-                        <input type="number" name="soTien" class="form-control form-control-lg border-0 bg-light" placeholder="0" required>
+                        <input type="number" name="soTien" class="form-control form-control-lg border-0 bg-light rounded-3" placeholder="0" required>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-muted">HẠNG MỤC</label>
-                        <select name="hangMuc" class="form-select border-0 bg-light">
-                            <option value="Ăn uống">Ăn uống</option>
-                            <option value="Di chuyển">Di chuyển</option>
-                            <option value="Mua sắm">Mua sắm</option>
-                            <option value="Giải trí">Giải trí</option>
-                        </select>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">HẠNG MỤC</label>
+                            <select name="hangMuc" class="form-select border-0 bg-light py-2">
+                                <option value="Ăn uống">🍜 Ăn uống</option>
+                                <option value="Di chuyển">🚗 Di chuyển</option>
+                                <option value="Mua sắm">🛍️ Mua sắm</option>
+                                <option value="Giải trí">🎮 Giải trí</option>
+                                <option value="Khác">⚙️ Khác</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">LOẠI</label>
+                            <select name="loai" class="form-select border-0 bg-light py-2">
+                                <option value="chi">Chi tiêu (-)</option>
+                                <option value="thu">Thu nhập (+)</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-4">
                         <label class="form-label small fw-bold text-muted">GHI CHÚ</label>
-                        <input type="text" name="ghiChu" class="form-control border-0 bg-light" placeholder="Ăn phở sáng...">
+                        <input type="text" name="ghiChu" class="form-control border-0 bg-light py-2" placeholder="Trường tiêu gì thế?">
                     </div>
-                    <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-3">LƯU GIAO DỊCH</button>
+                    <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-pill shadow">
+                        LƯU GIAO DỊCH
+                    </button>
                 </form>
             </div>
         </div>
     </div>
 </div>
 
-<%- include('../partials/footer') %>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('expenseChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Ăn uống', 'Di chuyển', 'Mua sắm', 'Giải trí', 'Khác'],
+            datasets: [{
+                data: [40, 15, 20, 15, 10], // Sau này Trường gửi data thật từ Route vào đây
+                backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#0dcaf0', '#6c757d'],
+                borderWidth: 0,
+                hoverOffset: 10
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } }
+            },
+            cutout: '70%'
+        }
+    });
+</script>
 
+<style>
+    .btn-bento {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border-radius: 20px;
+    }
+    .btn-bento:hover {
+        transform: translateY(-5px);
+        filter: brightness(1.1);
+    }
+    .icon-circle {
+        background: rgba(255, 255, 255, 0.2);
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+    }
+</style>
+
+<%- include('../partials/footer') %>

@@ -23,8 +23,8 @@ app.use(express.static(path.join(__dirname, 'public'))); // Chứa CSS, JS front
 app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false } // Đặt là true nếu dùng HTTPS
+    saveUninitialized: false,
+    cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000} // Đặt là true nếu dùng HTTPS
 }));
 
 // Kết nối Cơ sở dữ liệu MongoDB Atlas
