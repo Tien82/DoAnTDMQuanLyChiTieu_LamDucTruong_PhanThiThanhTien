@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Bản Đồ Chi Tiêu</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f8f9fa; }
+        /* BẮT BUỘC: Phải cấp chiều cao cho thẻ div chứa map thì nó mới hiện lên */
+        #myMap { 
+            height: 500px; 
+            width: 100%; 
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <h2>🗺️ Bản đồ Giá Món Ăn (Chạy bằng dữ liệu giả)</h2>
+    <p>Nhấn vào các điểm màu xanh trên bản đồ để xem tên quán và giá tiền nhé!</p>
+    
+    <div id="myMap"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // 1. KHỞI TẠO BẢN ĐỒ: Focus camera về trung tâm Long Xuyên, An Giang
+        var map = L.map('myMap').setView([10.3759, 105.4340], 14);
+
+        // 2. TẢI HÌNH ẢNH BẢN ĐỒ: Dùng kho dữ liệu miễn phí của OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // 3. DỮ LIỆU GIẢ (Mock Data) - Tạm thời dùng cái này trong lúc chờ ný B làm xong Database
+        const fakeData = [
+            { tenQuan: "Phở bò quán bà Tám", lat: 10.3759, lng: 105.4340, gia: 45000 },
+            { tenQuan: "Cafe sinh viên ĐHAG", lat: 10.3780, lng: 105.4320, gia: 20000 },
+            { tenQuan: "Cơm tấm bãi rác", lat: 10.3720, lng: 105.4380, gia: 35000 }
+        ];
+
+        // 4. VẼ LÊN BẢN ĐỒ: Dùng vòng lặp để lấy tọa độ và gắn Marker (Ghim)
+        fakeData.forEach(item => {
+            // 1. TẠO GHIM "SIÊU NHÍ"
+            var iconSieuNho = new L.Icon({
+                iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+                shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+                iconSize: [12, 20],       // Kích thước siêu nhỏ (Gốc là 25x41)
+                iconAnchor: [6, 20],      // Chân ghim cắm xuống đất
+                popupAnchor: [0, -15],    // Vị trí cái bảng giá trồi lên
+                shadowSize: [20, 20]      // Bóng mờ cũng thu nhỏ lại
+            });
+
+            var marker = L.marker([item.lat, item.lng], { icon: iconSieuNho }).addTo(map);
+            
+            // 2. THIẾT KẾ NỘI DUNG CHỮ NHỎ GỌN
+            var noiDungPopup = `
+                <div style="font-size: 11px; line-height: 1.2; text-align: center;">
+                    <b style="color: #333;">${item.tenQuan}</b><br>
+                    <span style="color: #dc3545; font-weight: bold;">${item.gia.toLocaleString('vi-VN')}đ</span>
+                </div>
+            `;
+            
+            // 3. ÉP SIZE KHUNG POPUP CỦA LEAFLET
+            marker.bindPopup(noiDungPopup, {
+                maxWidth: 100,       // Ép chiều ngang tối đa chỉ 100px
+                minWidth: 80,        // Ép chiều ngang tối thiểu
+                closeButton: false,  // Ẩn luôn nút tắt [x] cho đỡ tốn chỗ (bấm ra ngoài tự tắt)
+                autoPanPadding: [10, 10] // Khoảng cách an toàn với viền màn hình
+            });
+        });
+    </script>
+</body>
+</html>

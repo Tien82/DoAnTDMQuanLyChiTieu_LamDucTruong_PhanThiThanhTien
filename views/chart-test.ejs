@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Finance Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body { background-color: #f4f7f6; font-family: 'Segoe UI', sans-serif; padding-top: 30px; }
+        .card { border: none; border-radius: 15px; }
+        .ai-advice { border-left: 4px solid; padding-left: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="container mb-5">
+    <div class="mb-4 d-flex justify-content-between align-items-center">
+        <div>
+            <h3 class="fw-bold text-primary"><i class="bi bi-pie-chart-fill"></i> Dashboard Thống Kê</h3>
+            <p class="text-muted">Phân tích chi tiêu thực tế từ hệ thống.</p>
+        </div>
+        <span class="badge bg-primary rounded-pill px-3 py-2">Tháng 04/2026</span>
+    </div>
+
+    <div class="mt-3 p-3 rounded-3 mb-4" style="background-color: #f8f9fa; border-left: 4px solid <%= soSanh.mauSac %>">
+        <div class="d-flex align-items-center">
+            <div class="me-3">
+                <i class="bi <%= soSanh.isTang ? 'bi-graph-up-arrow' : 'bi-graph-down-arrow' %> fs-3" style="color: <%= soSanh.mauSac %>"></i>
+            </div>
+            <div>
+                <p class="mb-0 fw-bold" style="color: <%= soSanh.mauSac %>"><%= soSanh.thongDiep %></p>
+                <small class="text-muted">Chênh lệch: <%= soSanh.chenhLech %>đ so với tháng trước</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body p-4">
+            <div class="d-flex justify-content-between mb-2">
+                <h6 class="fw-bold mb-0">Hạn mức: <span class="text-primary"><%= dataAI.hanMuc %>đ</span></h6>
+                <h6 class="fw-bold mb-0 text-danger">Đã tiêu: <%= dataAI.tongChi %>đ</h6>
+            </div>
+            
+            <div class="progress mb-3" style="height: 25px; border-radius: 15px;">
+                <div class="progress-bar <%= dataAI.bgClass %> progress-bar-striped progress-bar-animated fw-bold" 
+                     role="progressbar" style="width: <%= dataAI.phanTram %>%"><%= dataAI.phanTram %>%</div>
+            </div>
+
+            <div class="ai-advice" style="border-left: 4px solid <%= dataAI.mauSac %>">
+                <h6 class="fw-bold mb-1" style="color: <%= dataAI.mauSac %>">
+                    <i class="bi bi-robot"></i> AI khuyên: <%= dataAI.noiDung %>
+                </h6>
+                <small class="text-muted"><%= dataAI.phuongAn %></small>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm p-3">
+                <h6 class="text-center fw-bold">Cơ cấu chi tiêu</h6>
+                <canvas id="doughnutChart"></canvas>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm p-3">
+                <h6 class="text-center fw-bold">Thu nhập vs Chi tiêu</h6>
+                <canvas id="barChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Chuyển đổi chuỗi tiền tệ (ví dụ: "4.200.000") về dạng số thuần để vẽ biểu đồ
+    const chiTieuRaw = '<%= dataAI.tongChi %>';
+    const chiTieuSo = parseInt(chiTieuRaw.replace(/\D/g, '')) || 0;
+
+    // Biểu đồ hình tròn
+    new Chart(document.getElementById('doughnutChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Ăn uống', 'Di chuyển', 'Giải trí', 'Khác'],
+            datasets: [{
+                data: [2000000, 500000, 1000000, 700000],
+                backgroundColor: ['#ff6384', '#36a2eb', '#ffce56', '#4bc0c0']
+            }]
+        }
+    });
+
+    // Biểu đồ cột
+    new Chart(document.getElementById('barChart'), {
+        type: 'bar',
+        data: {
+            labels: ['Tháng hiện tại'],
+            datasets: [
+                { label: 'Thu nhập', data: [8000000], backgroundColor: '#198754' },
+                { label: 'Chi tiêu', data: [chiTieuSo], backgroundColor: '#dc3545' }
+            ]
+        }
+    });
+</script>
+</body>
+</html>
