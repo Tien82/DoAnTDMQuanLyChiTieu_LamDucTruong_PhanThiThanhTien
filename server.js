@@ -10,7 +10,7 @@ const app = express();
 // ==========================================
 // 1. CẤU HÌNH MIDDLEWARE (BẮT BUỘC PHẢI NẰM TRÊN CÙNG)
 // ==========================================
-app.use(express.json()); // Đọc dữ liệu JSON từ Thunder Client
+app.use(express.json()); // Đọc dữ liệu JSON
 app.use(express.urlencoded({ extended: true })); // Đọc dữ liệu Form
 app.use(express.static(path.join(__dirname, 'public'))); // Chứa CSS, JS frontend
 
@@ -20,8 +20,8 @@ app.use(express.static(path.join(__dirname, 'public'))); // Chứa CSS, JS front
 app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false } // Đặt là true nếu dùng HTTPS
+    saveUninitialized: false,
+    cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000} // Đặt là true nếu dùng HTTPS
 }));
 
 // ==========================================
@@ -33,9 +33,14 @@ app.set('views', path.join(__dirname, 'views'));
 // ==========================================
 // 4. ĐỊNH TUYẾN - ROUTES (NẰM DƯỚI MIDDLEWARE VÀ SESSION)
 // ==========================================
+// Các Route từ nhánh kéo về (Nhóm 1)
+const analyzeRoutes = require('./routes/analyze.routes');
+app.use('/dashboard', analyzeRoutes);
+
 const authRoutes = require('./routes/auth.routes');
 app.use('/auth', authRoutes);
 
+// Các Route của bạn (Nhóm 2)
 const expenseRoutes = require('./routes/expense.routes');
 app.use('/expenses', expenseRoutes); 
 
@@ -43,9 +48,11 @@ app.use('/expenses', expenseRoutes);
 app.get('/', (req, res) => {
     res.send('<h1>Trợ lý quản lý chi tiêu sẵn sàng!</h1><p>Hệ thống đã chạy thành công.</p>');
 });
+
 app.get('/test-map', (req, res) => {
     res.render('map-test'); 
 });
+
 const { phanTichTaiChinh, soSanhThangTruoc } = require('./utils/logicAI');
 
 app.get('/test-chart', (req, res) => {

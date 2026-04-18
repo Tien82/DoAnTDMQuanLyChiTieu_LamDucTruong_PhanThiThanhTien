@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartSpend AI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root { --sidebar-width: 260px; }
+        body { background-color: #f0f2f5; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        
+        /* Sidebar Style */
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            position: fixed;
+            left: 0; top: 0;
+            background: white;
+            border-right: 1px solid #e5e7eb;
+            z-index: 1000;
+            padding: 1.5rem;
+        }
+        
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.8rem 1rem;
+            color: #4b5563;
+            border-radius: 12px;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background-color: #0d6efd;
+            color: white !important;
+        }
+
+        .nav-link i { margin-right: 12px; font-size: 1.2rem; }
+
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); transition: 0.3s; }
+            .main-content { margin-left: 0; }
+            .sidebar.active { transform: translateX(0); }
+        }
+
+        @keyframes pulse-red {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(255, 82, 82, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 82, 82, 0); }
+        }
+
+        .recording {
+            animation: pulse-red 1.5s infinite;
+            background-color: #ff5252 !important;
+            color: white !important;
+        }
+
+        .btn-action {
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border-radius: 16px !important;
+        }
+        .btn-action:hover {
+            transform: translateY(-5px);
+            filter: brightness(1.1);
+        }
+        .btn-action:active {
+            transform: scale(0.95);
+        }
+
+        .transaction-item {
+            border-radius: 16px;
+            transition: all 0.2s;
+        }
+        .transaction-item:hover {
+            background-color: #f8f9fa;
+            transform: translateX(5px);
+        }
+        .bg-danger-subtle { background-color: #fee2e2; }
+        .bg-success-subtle { background-color: #d1fae5; }
+        .transaction-actions { opacity: 0; transition: 0.3s; }
+        .transaction-item:hover .transaction-actions { opacity: 1; }
+        .cursor-pointer { cursor: pointer; }
+
+        #notificationBell {
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        #notificationBell:hover {
+            transform: scale(1.1);
+        }
+
+        .dropdown-item:active {
+            background-color: transparent !important;
+            color: black !important;
+        }
+
+        .bg-warning-subtle { background-color: #fff3cd; }
+        .bg-info-subtle { background-color: #cff4fc; }
+
+        .dropdown-menu .dropdown-item {
+            white-space: normal !important; /* Cho phép chữ tự động xuống dòng */
+            word-wrap: break-word;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f8f9fa !important;
+        }
+
+        /* Tùy chỉnh thanh cuộn cho bảng thông báo (nếu nhiều tin quá) */
+        div::-webkit-scrollbar {
+            width: 6px;
+        }
+        div::-webkit-scrollbar-thumb {
+            background: #e0e0e0;
+            border-radius: 10px;
+        }
+
+        div::-webkit-scrollbar {
+            width: 6px;
+        }
+        div::-webkit-scrollbar-thumb {
+            background: #e0e0e0;
+            border-radius: 10px;
+        }
+        .bg-warning-subtle { background-color: #fff3cd !important; }
+        .bg-info-subtle { background-color: #cff4fc !important; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="d-flex align-items-center mb-4 px-2">
+            <i class="bi bi-wallet2 text-primary fs-3 me-2"></i>
+            <span class="fw-bold fs-4">SmartSpend</span>
+        </div>
+
+        
+        
+        <nav class="nav flex-column">
+            <a href="/dashboard" class="nav-link <%= typeof path !== 'undefined' && path === 'dashboard' ? 'active' : '' %>">
+                <i class="bi bi-grid-1x2-fill"></i> Tổng quan
+            </a>
+            <a href="/dashboard/history" class="nav-link <%= typeof path !== 'undefined' && path === 'history' ? 'active' : '' %>">
+                <i class="bi bi-clock-history"></i> Lịch sử thu chi
+            </a>
+            <a href="/dashboard/profile" class="nav-link <%= typeof path !== 'undefined' && path === 'profile' ? 'active' : '' %>">
+                <i class="bi bi-person-circle"></i> Tài khoản của tôi
+            </a>
+            
+            <hr>
+            <a href="/auth/logout" class="nav-link text-danger">
+                <i class="bi bi-box-arrow-left"></i> Đăng xuất
+            </a>
+        </nav>
+    </div>
+
+    <div class="main-content">
+        <div class="d-flex justify-content-end align-items-center mb-4 border-bottom pb-3">
+            <div class="dropdown">
+                <div class="position-relative cursor-pointer" id="notificationBell" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer;">
+                    <i class="bi bi-bell-fill fs-4 text-secondary"></i>
+                    <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
+                        <span class="visually-hidden">New alerts</span>
+                    </span>
+                </div>
+                
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-0 mt-3" aria-labelledby="notificationBell" style="width: 400px; border-radius: 16px; overflow: hidden;">
+                    <li class="bg-primary text-white p-3 d-flex justify-content-between align-items-center">
+                        <span class="fw-bold">Thông báo mới nhất</span>
+                        <span class="badge bg-white text-primary rounded-pill">2</span>
+                    </li>
+                    
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <li>
+                            <div class="dropdown-item p-3 border-bottom d-flex align-items-start shadow-none" style="white-space: normal;">
+                                <div class="bg-warning-subtle text-warning p-2 rounded-3 me-3">
+                                    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                                </div>
+                                <div>
+                                    <p class="mb-1 small fw-bold text-dark">Cảnh báo hạn mức!</p>
+                                    <p class="mb-0 text-muted small lh-base">
+                                        Ný ơi, ný đã tiêu hết **85%** tiền tháng này rồi đó. Hệ thống khuyên ný nên giảm chi tiêu ăn uống lại nhé.
+                                    </p>
+                                </div>
+                            </div>
+                        </li>
+
+                        <li>
+                            <div class="dropdown-item p-3 border-bottom d-flex align-items-start shadow-none" style="white-space: normal;">
+                                <div class="bg-info-subtle text-info p-2 rounded-3 me-3">
+                                    <i class="bi bi-lightbulb-fill fs-5"></i>
+                                </div>
+                                <div>
+                                    <p class="mb-1 small fw-bold text-dark">Gợi ý từ trợ lý AI</p>
+                                    <p class="mb-0 text-muted small lh-base">
+                                        Tháng này ný đi trà sữa hơi nhiều (5 lần). Bớt lại một chút là ný có thêm tiền tiết kiệm rồi đó!
+                                    </p>
+                                </div>
+                            </div>
+                        </li>
+                    </div>
+
+                    <li>
+                        <a class="dropdown-item text-center py-3 small text-primary fw-bold bg-light" href="#">Xem tất cả thông báo</a>
+                    </li>
+                </ul>
+            </div>
+        </div>

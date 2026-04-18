@@ -1,0 +1,114 @@
+<%- include('../partials/header') %>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold"><i class="bi bi-journal-text me-2 text-primary"></i>Lịch sử giao dịch</h3>
+        <button class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#manualModal">
+            <i class="bi bi-plus-lg me-1"></i> Thêm mới
+        </button>
+    </div>
+
+    <div class="list-group shadow-sm border-0">
+        <% if (expenses && expenses.length > 0) { %>
+            <% expenses.forEach(item => { %>
+                <div class="list-group-item list-group-item-action border-0 mb-2 py-3 shadow-sm rounded-4 d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3 
+                            <%= item.soTien < 0 ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success' %>" 
+                            style="width: 48px; height: 48px; min-width: 48px;">
+                            <i class="bi <%= item.soTien < 0 ? 'bi-cart-dash-fill' : 'bi-cash-stack' %> fs-5"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-0 text-dark"><%= item.hangMuc %></h6>
+                            <small class="text-muted d-block">
+                                <i class="bi bi-calendar3 me-1"></i><%= item.ngayGiaoDich.toLocaleDateString('vi-VN') %> 
+                                <% if(item.ghiChu) { %> | <span class="fst-italic"><%= item.ghiChu %></span> <% } %>
+                            </small>
+                            <span class="badge rounded-pill bg-light text-secondary border mt-1" style="font-size: 0.65rem;">
+                                <%= item.phuongThucNhap === 'manual' ? 'Nhập tay' : item.phuongThucNhap.toUpperCase() %>
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="text-end d-flex flex-column align-items-end">
+                        <span class="fw-bold fs-5 <%= item.soTien < 0 ? 'text-danger' : 'text-success' %>">
+                            <%= item.soTien < 0 ? '-' : '+' %> <%= Math.abs(item.soTien).toLocaleString('vi-VN') %>đ
+                        </span>
+                        
+                        <form action="/dashboard/delete/<%= item._id %>" method="POST" 
+                              onsubmit="return confirm('Ný chắc chắn muốn xóa khoản này không?')" class="mt-1">
+                            <button type="submit" class="btn btn-sm text-muted p-0 border-0 bg-transparent hover-danger" title="Xóa">
+                                <i class="bi bi-trash3-fill small"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            <% }) %>
+        <% } else { %>
+            <div class="text-center py-5 bg-white rounded-4 shadow-sm">
+                <i class="bi bi-inbox text-muted display-1"></i>
+                <p class="text-muted mt-3">Chưa có giao dịch nào hết ný ơi.<br>Bấm "Thêm mới" để bắt đầu nhé!</p>
+            </div>
+        <% } %>
+    </div>
+</div>
+
+<div class="modal fade" id="manualModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius: 20px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold ps-2 mt-2">Ghi chép chi tiêu</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form action="/dashboard/input/manual" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">SỐ TIỀN (VNĐ)</label>
+                        <input type="number" name="soTien" class="form-control border-0 bg-light py-2 rounded-3" placeholder="Ví dụ: 50000" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">HẠNG MỤC</label>
+                        <select name="hangMuc" class="form-select border-0 bg-light py-2 rounded-3" required>
+                            <option value="Ăn uống">🍜 Ăn uống</option>
+                            <option value="Di chuyển">🚗 Di chuyển</option>
+                            <option value="Mua sắm">🛍️ Mua sắm</option>
+                            <option value="Lương">💰 Lương / Thu nhập</option>
+                            <option value="Giải trí">🎮 Giải trí</option>
+                            <option value="Khác">⚙️ Khác</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">LOẠI GIAO DỊCH</label>
+                        <select name="loai" class="form-select border-0 bg-light py-2 rounded-3">
+                            <option value="chi">Chi tiêu (-)</option>
+                            <option value="thu">Thu nhập (+)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">GHI CHÚ</label>
+                        <input type="text" name="ghiChu" class="form-control border-0 bg-light py-2 rounded-3" placeholder="Ný tiêu vào việc gì thế?">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow-sm mt-3">
+                        <i class="bi bi-check-circle-fill me-2"></i>Lưu vào sổ cái
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .hover-danger:hover {
+        color: #dc3545 !important;
+        transform: scale(1.1);
+        transition: all 0.2s;
+    }
+    .bg-danger-subtle { background-color: #f8d7da; }
+    .bg-success-subtle { background-color: #d1e7dd; }
+</style>
+
+<%- include('../partials/footer') %>
