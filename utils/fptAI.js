@@ -7,7 +7,7 @@ const phanTichChiTieu = async (vanBan) => {
             { content: vanBan }, 
             {
                 headers: { 
-                    'Authorization': `Bearer ${process.env.FPT_AI_API_KEY}`,
+                    'Authorization': `Bearer ${process.env.FPT_AI_KEY}`,
                     'Content-Type': 'application/json' 
                 }
             }

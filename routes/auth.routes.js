@@ -43,8 +43,6 @@ router.get('/login', (req, res) => {
     res.render('auth/login');
 });
 
-module.exports = router;
-
 // Xử lý Đăng nhập (POST)
 router.post('/login', async (req, res) => {
     try {
@@ -70,3 +68,9 @@ router.post('/login', async (req, res) => {
         res.status(500).send('Lỗi đăng nhập');
     }
 });
+router.get('/logout', (req, res) => {
+    req.session.destroy(); 
+    res.redirect('/auth/login');
+});
+
+module.exports = router;

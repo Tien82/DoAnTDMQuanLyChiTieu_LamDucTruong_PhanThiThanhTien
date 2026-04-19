@@ -1,36 +1,76 @@
 const express = require('express');
 const router = express.Router();
 const Expense = require('../models/Expense');
+const User = require('../models/User'); // Thêm model User để lấy hạn mức thật
+const { phanTichTaiChinh } = require('../utils/logicAI');
+const { phanTichChiTieu } = require('../utils/fptAI');
 
-// Middleware kiểm tra đăng nhập nhanh cho các route dashboard
+// Middleware kiểm tra đăng nhập
 const checkAuth = (req, res, next) => {
-    // Thêm kiểm tra req.session tồn tại trước khi đọc userId
     if (req.session && req.session.userId) {
         return next();
     }
     res.redirect('/auth/login');
 };
 
+/**
+ * Hàm hỗ trợ lấy dữ liệu AI dùng chung cho các trang
+ * Giúp tránh lỗi undefined biến dataAI ở Header
+ */
+async function getSharedDataAI(userId, sessionHanMuc) {
+    const expenses = await Expense.find({ user: userId });
+    const tongChiTieu = expenses
+        .filter(item => item.soTien < 0)
+        .reduce((sum, item) => sum + Math.abs(item.soTien), 0);
+    const tongThuNhap = expenses
+        .filter(item => item.soTien > 0)
+        .reduce((sum, item) => sum + item.soTien, 0);
+    // Ưu tiên hạn mức từ session, nếu không có thì mặc định 5tr
+    const hanMuc = sessionHanMuc || 5000000;
+    return {
+        dataAI: phanTichTaiChinh(tongChiTieu, hanMuc),
+        tongChiTieu,
+        tongThuNhap,
+        hanMuc,
+        expenses // Trả về luôn để các route đỡ phải query lại
+    };
+}
+
 // --- 1. TRANG DASHBOARD CHÍNH ---
 router.get('/', checkAuth, async (req, res) => {
     try {
-        const expenses = await Expense.find({ user: req.session.userId });
+        const sharedData = await getSharedDataAI(req.session.userId, req.session.hanMuc);
+        const { expenses, tongChiTieu, tongThuNhap, hanMuc, dataAI } = sharedData;
 
-        // Tính tổng chi tiêu (các khoản tiền âm)
-        const tongChiTieu = expenses
-            .filter(item => item.soTien < 0)
-            .reduce((sum, item) => sum + Math.abs(item.soTien), 0);
+        // Tổng hợp dữ liệu cho Biểu đồ (Doughnut Chart)
+        const thongKeHangMuc = {};
+        expenses.filter(item => item.soTien < 0).forEach(item => {
+            thongKeHangMuc[item.hangMuc] = (thongKeHangMuc[item.hangMuc] || 0) + Math.abs(item.soTien);
+        });
 
-        // Giả sử hạn mức mặc định là 5tr (Sau này ný A lấy từ User model)
-        const hanMuc = 5000000; 
-        const phanTram = hanMuc > 0 ? Math.round((tongChiTieu / hanMuc) * 100) : 0;
+        // Lấy danh sách tọa độ cho Bản đồ (Map)
+        const toaDoGiaoDich = expenses
+            .filter(item => item.viTri && item.viTri.toaDo && item.viTri.toaDo.lat)
+            .map(item => ({
+                lat: item.viTri.toaDo.lat,
+                lng: item.viTri.toaDo.lng,
+                tenQuan: item.viTri.tenQuan || item.hangMuc,
+                soTien: Math.abs(item.soTien)
+            }));
 
         res.render('dashboard/index', { 
             user: req.session.username, 
             path: 'dashboard',
             tongChiTieu,
+            tongThuNhap,
             hanMuc,
-            phanTram
+            phanTram: dataAI.phanTram,
+            dataAI: dataAI,
+            chartData: {
+                labels: Object.keys(thongKeHangMuc),
+                values: Object.values(thongKeHangMuc)
+            },
+            mapData: toaDoGiaoDich
         });
     } catch (err) {
         console.error("Lỗi Dashboard:", err);
@@ -41,63 +81,168 @@ router.get('/', checkAuth, async (req, res) => {
 // --- 2. TRANG LỊCH SỬ GIAO DỊCH ---
 router.get('/history', checkAuth, async (req, res) => {
     try {
-        const expenses = await Expense.find({ user: req.session.userId }).sort({ ngayGiaoDich: -1 });
+        const sharedData = await getSharedDataAI(req.session.userId, req.session.hanMuc);
+        
+        // Sắp xếp lại danh sách chi tiêu mới nhất lên đầu cho trang History
+        const sortedExpenses = sharedData.expenses.sort((a, b) => b.ngayGiaoDich - a.ngayGiaoDich);
 
         res.render('dashboard/history', { 
             user: req.session.username, 
             path: 'history',
-            expenses: expenses 
+            expenses: sortedExpenses,
+            dataAI: sharedData.dataAI
         });
     } catch (err) {
         console.error("Lỗi trang History:", err);
-        res.render('dashboard/history', { 
-            user: req.session.username, 
-            path: 'history', 
-            expenses: [] 
-        });
+        res.status(500).send("Lỗi tải lịch sử");
     }
 });
 
 // --- 3. TRANG HỒ SƠ (PROFILE) ---
-router.get('/profile', checkAuth, (req, res) => {
-    res.render('dashboard/profile', { 
-        user: req.session.username, 
-        path: 'profile' 
-    });
+router.get('/profile', checkAuth, async (req, res) => {
+    try {
+        const sharedData = await getSharedDataAI(req.session.userId, req.session.hanMuc);
+        res.render('dashboard/profile', { 
+            user: req.session.username, 
+            path: 'profile',
+            dataAI: sharedData.dataAI,
+            hanMuc: sharedData.hanMuc
+        });
+    } catch (err) {
+        res.status(500).send("Lỗi tải hồ sơ");
+    }
 });
 
-// --- 4. NGHIỆP VỤ LƯU GIAO DỊCH (MANUAL) ---
+// --- 4. CẬP NHẬT HẠN MỨC (Trong trang Profile) ---
+router.post('/profile/budget', checkAuth, async (req, res) => {
+    try {
+        const { hanMucThang } = req.body;
+        const newBudget = Number(hanMucThang);
+        
+        // Cập nhật vào DB
+        await User.findByIdAndUpdate(req.session.userId, { hanMucThang: newBudget });
+        
+        // Cập nhật vào Session để các trang khác nhận ngay lập tức
+        req.session.hanMuc = newBudget;
+        
+        res.redirect('/dashboard/profile');
+    } catch (err) {
+        console.error("Lỗi cập nhật hạn mức:", err);
+        res.status(500).send("Không thể cập nhật hạn mức");
+    }
+});
+
+// --- 5. NGHIỆP VỤ LƯU GIAO DỊCH (MANUAL) ---
 router.post('/input/manual', checkAuth, async (req, res) => {
     try {
-        const { soTien, hangMuc, ghiChu, loai } = req.body;
+        // Lấy thêm lat, lng, tenQuan từ body do index.ejs gửi lên
+        const { soTien, hangMuc, ghiChu, loai, lat, lng, tenQuan } = req.body;
         
         const newExpense = new Expense({
             user: req.session.userId,
-            // Nếu là 'chi' thì lưu số âm, 'thu' lưu số dương
             soTien: loai === 'chi' ? -Math.abs(Number(soTien)) : Math.abs(Number(soTien)), 
             hangMuc: hangMuc || 'Khác',
             ghiChu: ghiChu,
             phuongThucNhap: 'manual',
-            ngayGiaoDich: new Date()
+            ngayGiaoDich: new Date(),
+            // LƯU THÊM VỊ TRÍ VÀO DATABASE
+            viTri: {
+                tenQuan: tenQuan || hangMuc, 
+                toaDo: {
+                    lat: lat ? Number(lat) : null,
+                    lng: lng ? Number(lng) : null
+                }
+            }
         });
 
         await newExpense.save();
-        res.redirect('/dashboard/history');
+        res.redirect('/dashboard'); 
     } catch (err) {
         console.error("Lỗi lưu DB:", err);
-        res.status(500).send("Lỗi lưu giao dịch rồi ný ơi!");
+        res.status(500).send("Lỗi lưu giao dịch!");
     }
 });
 
-// --- 5. NGHIỆP VỤ XÓA GIAO DỊCH ---
+// --- 6. NGHIỆP VỤ XÓA GIAO DỊCH ---
 router.post('/delete/:id', checkAuth, async (req, res) => {
     try {
-        // Chỉ xóa nếu giao dịch đó thuộc về đúng user đang đăng nhập
         await Expense.findOneAndDelete({ _id: req.params.id, user: req.session.userId });
         res.redirect('/dashboard/history');
     } catch (err) {
         console.error("Lỗi xóa DB:", err);
-        res.status(500).send("Không xóa được ný ơi!");
+        res.status(500).send("Không xóa được giao dịch!");
+    }
+});
+
+// --- 7. XỬ LÝ NHẬP LIỆU GIỌNG NÓI ---
+router.post('/input/voice', checkAuth, async (req, res) => {
+    try {
+        const { text } = req.body;
+        if (!text) return res.status(400).json({ success: false, message: "Không nghe thấy gì!" });
+
+        const ketQuaAI = await phanTichChiTieu(text);
+
+        if (ketQuaAI) {
+            const newExpense = new Expense({
+                user: req.session.userId,
+                soTien: -Math.abs(ketQuaAI.soTien),
+                hangMuc: ketQuaAI.hangMuc,
+                ghiChu: `Nhập bằng giọng nói: "${text}"`,
+                phuongThucNhap: 'voice',
+                ngayGiaoDich: new Date()
+            });
+
+            await newExpense.save();
+            return res.json({ success: true, data: ketQuaAI });
+        }
+        res.status(422).json({ success: false, message: "AI không hiểu ý ný..." });
+    } catch (err) {
+        console.error("Lỗi Voice AI:", err);
+        res.status(500).json({ success: false, message: "Lỗi hệ thống!" });
+    }
+});
+// --- 8. TRANG BẢN ĐỒ CHI TIÊU FULL ---
+router.get('/map', checkAuth, async (req, res) => {
+    try {
+        const sharedData = await getSharedDataAI(req.session.userId, req.session.hanMuc);
+        
+        // Lấy tất cả giao dịch có tọa độ để đưa lên bản đồ lớn
+        const toaDoGiaoDich = sharedData.expenses
+            .filter(item => item.viTri && item.viTri.toaDo && item.viTri.toaDo.lat)
+            .map(item => ({
+                id: item._id, // Quan trọng: Gửi kèm ID để sửa/xóa
+                lat: item.viTri.toaDo.lat,
+                lng: item.viTri.toaDo.lng,
+                tenQuan: item.viTri.tenQuan || item.hangMuc,
+                soTien: Math.abs(item.soTien),
+                ghiChu: item.ghiChu || "Không có ghi chú"
+            }));
+
+        res.render('dashboard/map', { 
+            user: req.session.username, 
+            path: 'map',
+            mapData: toaDoGiaoDich,
+            dataAI: sharedData.dataAI // Để Header không bị lỗi mồ côi
+        });
+    } catch (err) {
+        console.error("Lỗi trang Map:", err);
+        res.status(500).send("Lỗi tải bản đồ");
+    }
+});
+
+// --- 9. CẬP NHẬT TRỰC TIẾP TỪ BẢN ĐỒ ---
+router.post('/map/update/:id', checkAuth, async (req, res) => {
+    try {
+        await Expense.findOneAndUpdate(
+            { _id: req.params.id, user: req.session.userId },
+            { 
+                soTien: -Math.abs(Number(req.body.giaMoi)), // Đảm bảo luôn là số âm (chi tiêu)
+                "viTri.tenQuan": req.body.tenQuanMoi
+            }
+        );
+        res.redirect('/dashboard/map');
+    } catch (err) {
+        res.status(500).send("Lỗi cập nhật giá trên bản đồ");
     }
 });
 

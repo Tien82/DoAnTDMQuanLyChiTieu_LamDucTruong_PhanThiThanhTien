@@ -1,173 +1,552 @@
 <%- include('../partials/header') %>
 
-<div class="container mt-4">
-    <div class="row g-4 mb-4">
-        <div class="col-lg-7">
-            <div class="card p-4 border-0 shadow-sm h-100" style="border-radius: 24px; background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);">
-                <h2 class="fw-bold">Chào Trường, <span class="text-primary"><%= user %></span>! 👋</h2>
-                <p class="text-muted">Hôm nay Trường muốn ghi chép chi tiêu bằng cách nào?</p>
-                
-                <div class="mt-4 p-3 bg-white rounded-4 shadow-sm border border-light">
-                    <div class="d-flex justify-content-between mb-2 small">
-                        <span class="fw-semibold text-secondary">Hạn mức tháng này</span>
-                        <span class="<%= phanTram > 80 ? 'text-danger' : 'text-primary' %> fw-bold">
-                            <%= phanTram %>%
-                        </span>
-                    </div>
-                    <div class="progress" style="height: 10px; border-radius: 10px; background-color: #e9ecef;">
-                        <div class="progress-bar <%= phanTram > 80 ? 'bg-danger' : 'bg-primary' %> progress-bar-striped progress-bar-animated" 
-                             style="width: <%= phanTram %>%"></div>
-                    </div>
-                    <div class="d-flex justify-content-between mt-2">
-                        <small class="text-muted" style="font-size: 0.75rem;">
-                            Đã tiêu: <strong><%= tongChiTieu.toLocaleString('vi-VN') %>đ</strong>
-                        </small>
-                        <small class="text-muted" style="font-size: 0.75rem;">
-                            Hạn mức: <%= hanMuc.toLocaleString('vi-VN') %>đ
-                        </small>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-5">
-            <div class="row g-3 h-100">
-                <div class="col-4">
-                    <div class="card border-0 shadow-sm h-100 text-center p-3 btn-bento bg-primary text-white" id="btn-voice">
-                        <div class="icon-circle mb-2"><i class="bi bi-mic-fill fs-3"></i></div>
-                        <span class="fw-bold small">GIỌNG NÓI</span>
-                    </div>
-                </div>
-                <div class="col-4">
-                    <label for="ocr-upload" class="card border-0 shadow-sm h-100 text-center p-3 btn-bento bg-success text-white">
-                        <div class="icon-circle mb-2"><i class="bi bi-camera-fill fs-3"></i></div>
-                        <span class="fw-bold small">QUÉT BILL</span>
-                        <input type="file" id="ocr-upload" hidden accept="image/*">
-                    </label>
-                </div>
-                <div class="col-4">
-                    <div class="card border-0 shadow-sm h-100 text-center p-3 btn-bento bg-info text-white" data-bs-toggle="modal" data-bs-target="#manualModal">
-                        <div class="icon-circle mb-2"><i class="bi bi-pencil-square fs-3"></i></div>
-                        <span class="fw-bold small">NHẬP TAY</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <div class="container mt-4">
+        <div class="row g-4 mb-4">
+            <div class="col-lg-7">
+                <div class="card p-4 border-0 shadow-sm h-100"
+                    style="border-radius: 24px; background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);">
+                    <h2 class="fw-bold">Chào <span class="text-primary">
+                            <%= user %>
+                        </span>! 👋</h2>
+                    <p class="text-muted">Hôm nay ný muốn ghi chép chi tiêu bằng cách nào?</p>
 
-    <div class="row g-4">
-        <div class="col-md-6">
-            <div class="card p-4 border-0 shadow-sm h-100 rounded-4">
-                <h5 class="fw-bold mb-4"><i class="bi bi-pie-chart-fill me-2 text-warning"></i>Cơ cấu chi tiêu</h5>
-                <div class="chart-container" style="position: relative; height:300px;">
-                    <canvas id="expenseChart"></canvas>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-6">
-            <div class="card p-4 border-0 shadow-sm h-100 rounded-4">
-                <h5 class="fw-bold mb-4"><i class="bi bi-geo-alt-fill me-2 text-danger"></i>Vị trí gần đây</h5>
-                <div id="map" style="height: 300px; border-radius: 16px; background-color: #f8f9fa;" class="d-flex align-items-center justify-content-center border">
-                    <div class="text-center text-muted">
-                        <i class="bi bi-map fs-1"></i>
-                        <p class="small">Bản đồ sẽ hiển thị khi Trường có dữ liệu vị trí</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="manualModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow" style="border-radius: 24px;">
-            <div class="modal-header border-0 px-4 pt-4">
-                <h5 class="modal-title fw-bold">Thêm giao dịch mới</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-4">
-                <form action="/dashboard/input/manual" method="POST">
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-muted">SỐ TIỀN (VNĐ)</label>
-                        <input type="number" name="soTien" class="form-control form-control-lg border-0 bg-light rounded-3" placeholder="0" required>
-                    </div>
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-muted">HẠNG MỤC</label>
-                            <select name="hangMuc" class="form-select border-0 bg-light py-2">
-                                <option value="Ăn uống">🍜 Ăn uống</option>
-                                <option value="Di chuyển">🚗 Di chuyển</option>
-                                <option value="Mua sắm">🛍️ Mua sắm</option>
-                                <option value="Giải trí">🎮 Giải trí</option>
-                                <option value="Khác">⚙️ Khác</option>
-                            </select>
+                    <div class="mt-4 p-3 bg-white rounded-4 shadow-sm border border-light">
+                        <div class="d-flex justify-content-between mb-2 small">
+                            <span class="fw-semibold text-secondary">Hạn mức tháng này</span>
+                            <span class="<%= phanTram > 80 ? 'text-danger' : 'text-primary' %> fw-bold">
+                                <%= phanTram %>%
+                            </span>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-muted">LOẠI</label>
-                            <select name="loai" class="form-select border-0 bg-light py-2">
-                                <option value="chi">Chi tiêu (-)</option>
-                                <option value="thu">Thu nhập (+)</option>
-                            </select>
+                        <div class="progress" style="height: 10px; border-radius: 10px; background-color: #e9ecef;">
+                            <div class="progress-bar <%= phanTram > 80 ? 'bg-danger' : 'bg-primary' %> progress-bar-striped progress-bar-animated"
+                                style="width: <%= phanTram %>%"></div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-2">
+                            <small class="text-muted" style="font-size: 0.75rem;">
+                                Đã tiêu: <strong>
+                                    <%= tongChiTieu.toLocaleString('vi-VN') %>đ
+                                </strong>
+                            </small>
+                            <small class="text-muted" style="font-size: 0.75rem;">
+                                Hạn mức: <%= hanMuc.toLocaleString('vi-VN') %>đ
+                            </small>
+                        </div>
+
+                        <% if (typeof dataAI !=='undefined' ) { %>
+                            <div class="mt-3 p-3 rounded-3"
+                                style="background-color: <%= dataAI.mauSac %>15; border-left: 4px solid <%= dataAI.mauSac %>;">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-2"><i class="bi bi-robot fs-4"
+                                            style="color: <%= dataAI.mauSac %>;"></i></div>
+                                    <div>
+                                        <small class="fw-bold d-block" style="color: <%= dataAI.mauSac %>;">Trợ lý AI
+                                            khuyên:</small>
+                                        <small class="text-dark">
+                                            <%= dataAI.noiDung %>
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="mt-2 text-end">
+                                    <small class="fw-bold text-primary" style="font-size: 0.7rem;">
+                                        <%= dataAI.phuongAn %>
+                                    </small>
+                                </div>
+                            </div>
+                            <% } %>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="row g-3 h-100">
+                    <div class="col-4">
+                        <div class="card border-0 shadow-sm h-100 text-center p-3 btn-bento bg-primary text-white"
+                            id="btn-voice" style="cursor: pointer;">
+                            <div class="icon-circle mb-2"><i class="bi bi-mic-fill fs-3"></i></div>
+                            <span class="fw-bold small d-block">GIỌNG NÓI</span>
                         </div>
                     </div>
-                    <div class="mb-4">
-                        <label class="form-label small fw-bold text-muted">GHI CHÚ</label>
-                        <input type="text" name="ghiChu" class="form-control border-0 bg-light py-2" placeholder="Trường tiêu gì thế?">
+                    <div class="col-4">
+                        <label for="ocr-upload"
+                            class="card border-0 shadow-sm h-100 text-center p-3 btn-bento bg-success text-white mb-0"
+                            style="cursor: pointer;">
+                            <div class="icon-circle mb-2"><i class="bi bi-camera-fill fs-3"></i></div>
+                            <span class="fw-bold small d-block">QUÉT BILL</span>
+                            <input type="file" id="ocr-upload" hidden accept="image/*">
+                        </label>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-pill shadow">
-                        LƯU GIAO DỊCH
-                    </button>
-                </form>
+                    <div class="col-4">
+                        <div class="card border-0 shadow-sm h-100 text-center p-3 btn-bento bg-info text-white"
+                            data-bs-toggle="modal" data-bs-target="#manualModal" style="cursor: pointer;">
+                            <div class="icon-circle mb-2"><i class="bi bi-pencil-square fs-3"></i></div>
+                            <span class="fw-bold small d-block">NHẬP TAY</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card p-4 border-0 shadow-sm h-100 rounded-4">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-pie-chart-fill me-2 text-warning"></i>Thu nhập & Chi tiêu
+                        tháng này</h5>
+                    <div class="chart-container mb-3" style="position: relative; height:250px;">
+                        <canvas id="mainMonthlyChart"></canvas>
+                    </div>
+                    <div class="text-center">
+                        <button class="btn btn-outline-primary btn-sm rounded-pill px-4 fw-bold" data-bs-toggle="modal"
+                            data-bs-target="#detailChartModal">
+                            <i class="bi bi-search me-1"></i> Xem chi tiết phân tích
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card p-4 border-0 shadow-sm h-100 rounded-4">
+                    <h5 class="fw-bold mb-4"><i class="bi bi-geo-alt-fill me-2 text-danger"></i>Vị trí gần đây</h5>
+                    <div id="map" style="height: 300px; border-radius: 16px; background-color: #f8f9fa;" class="border">
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    const ctx = document.getElementById('expenseChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Ăn uống', 'Di chuyển', 'Mua sắm', 'Giải trí', 'Khác'],
-            datasets: [{
-                data: [40, 15, 20, 15, 10], // Sau này Trường gửi data thật từ Route vào đây
-                backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#0dcaf0', '#6c757d'],
-                borderWidth: 0,
-                hoverOffset: 10
-            }]
-        },
-        options: {
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } }
-            },
-            cutout: '70%'
+    <div class="modal fade" id="detailChartModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow" style="border-radius: 28px;">
+                <div class="modal-header border-0 px-4 pt-4 pb-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-bar-chart-line-fill me-2"></i>Phân tích chi tiết
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-4">
+                        <div class="col-md-6 text-center">
+                            <h6 class="fw-bold text-muted mb-3 text-uppercase" style="font-size: 0.75rem;">Cơ cấu hạng
+                                mục chi tiêu</h6>
+                            <div style="height: 250px;"><canvas id="detailPieChart"></canvas></div>
+                        </div>
+                        <div class="col-md-6 text-center">
+                            <h6 class="fw-bold text-muted mb-3 text-uppercase" style="font-size: 0.75rem;">Tương quan
+                                Thu nhập - Chi tiêu</h6>
+                            <div style="height: 250px;"><canvas id="detailBarChart"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="manualModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow" style="border-radius: 24px;">
+                <div class="modal-header border-0 px-4 pt-4">
+                    <h5 class="modal-title fw-bold">Thêm giao dịch mới</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form action="/dashboard/input/manual" method="POST">
+                        <input type="hidden" name="lat" id="latInput">
+                        <input type="hidden" name="lng" id="lngInput">
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Số tiền (VNĐ)</label>
+                            <input type="number" name="soTien"
+                                class="form-control form-control-lg border-0 bg-light rounded-3" placeholder="0"
+                                required>
+                        </div>
+
+                        <div class="mb-3 position-relative">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Tên địa điểm / Quán
+                                ăn</label>
+                            <div class="input-group">
+                                <input type="text" name="tenQuan" id="searchInput"
+                                    class="form-control border-0 bg-light py-2 rounded-start-3"
+                                    placeholder="Ví dụ: Siêu thị Mega">
+                                <button class="btn btn-primary fw-bold" type="button" id="btnSearchMap">
+                                    <i class="bi bi-search"></i> Tìm trên Map
+                                </button>
+                            </div>
+                            <ul id="searchResults" class="list-group position-absolute w-100 shadow mt-1"
+                                style="z-index: 1050; display: none; max-height: 200px; overflow-y: auto;"></ul>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-muted text-uppercase">Hạng mục</label>
+                                <select name="hangMuc" class="form-select border-0 bg-light py-2">
+                                    <option value="Ăn uống">🍜 Ăn uống</option>
+                                    <option value="Di chuyển">🚗 Di chuyển</option>
+                                    <option value="Mua sắm">🛍️ Mua sắm</option>
+                                    <option value="Giải trí">🎮 Giải trí</option>
+                                    <option value="Khác">⚙️ Khác</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-muted text-uppercase">Loại</label>
+                                <select name="loai" class="form-select border-0 bg-light py-2">
+                                    <option value="chi">Chi tiêu (-)</option>
+                                    <option value="thu">Thu nhập (+)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Ghi chú</label>
+                            <input type="text" name="ghiChu" class="form-control border-0 bg-light py-2"
+                                placeholder="Ný tiêu vào việc gì thế?">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-pill shadow-sm">LƯU GIAO
+                            DỊCH</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="manualModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow" style="border-radius: 24px;">
+                <div class="modal-header border-0 px-4 pt-4">
+                    <h5 class="modal-title fw-bold">Thêm giao dịch mới</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form action="/dashboard/input/manual" method="POST">
+                        <input type="hidden" name="lat" id="latInput">
+                        <input type="hidden" name="lng" id="lngInput">
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Số tiền (VNĐ)</label>
+                            <input type="number" name="soTien"
+                                class="form-control form-control-lg border-0 bg-light rounded-3" placeholder="0"
+                                required>
+                        </div>
+
+                        <div class="mb-3 position-relative">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Tên địa điểm / Quán
+                                ăn</label>
+                            <div class="input-group">
+                                <input type="text" name="tenQuan" id="searchInput"
+                                    class="form-control border-0 bg-light py-2 rounded-start-3"
+                                    placeholder="Ví dụ: Siêu thị Mega">
+                                <button class="btn btn-primary fw-bold" type="button" id="btnSearchMap">
+                                    <i class="bi bi-search"></i> Tìm trên Map
+                                </button>
+                            </div>
+                            <ul id="searchResults" class="list-group position-absolute w-100 shadow mt-1"
+                                style="z-index: 1050; display: none; max-height: 200px; overflow-y: auto;"></ul>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-muted text-uppercase">Hạng mục</label>
+                                <select name="hangMuc" class="form-select border-0 bg-light py-2">
+                                    <option value="Ăn uống">🍜 Ăn uống</option>
+                                    <option value="Di chuyển">🚗 Di chuyển</option>
+                                    <option value="Mua sắm">🛍️ Mua sắm</option>
+                                    <option value="Giải trí">🎮 Giải trí</option>
+                                    <option value="Khác">⚙️ Khác</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-muted text-uppercase">Loại</label>
+                                <select name="loai" class="form-select border-0 bg-light py-2">
+                                    <option value="chi">Chi tiêu (-)</option>
+                                    <option value="thu">Thu nhập (+)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Ghi chú</label>
+                            <input type="text" name="ghiChu" class="form-control border-0 bg-light py-2"
+                                placeholder="Ný tiêu vào việc gì thế?">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-pill shadow-sm">LƯU GIAO
+                            DỊCH</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <style>
+        /* CSS Bento UI [cite: 56-70] */
+        .btn-bento {
+            transition: all 0.3s ease;
+            border-radius: 20px;
         }
-    });
-</script>
 
-<style>
-    .btn-bento {
-        cursor: pointer;
-        transition: all 0.3s ease;
-        border-radius: 20px;
-    }
-    .btn-bento:hover {
-        transform: translateY(-5px);
-        filter: brightness(1.1);
-    }
-    .icon-circle {
-        background: rgba(255, 255, 255, 0.2);
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto;
-    }
-</style>
+        .btn-bento:hover {
+            transform: translateY(-5px);
+            filter: brightness(1.1);
+        }
 
-<%- include('../partials/footer') %>
+        .icon-circle {
+            background: rgba(255, 255, 255, 0.2);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+        }
+
+        .mic-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .pulse-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            animation: pulse-white 2s infinite;
+        }
+
+        @keyframes pulse-white {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.8;
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(2);
+                opacity: 0;
+            }
+        }
+
+        .shadow-inner {
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        @keyframes pulse-red {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.7);
+            }
+
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 15px rgba(255, 82, 82, 0);
+            }
+
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(255, 82, 82, 0);
+            }
+        }
+
+        .recording {
+            animation: pulse-red 1.5s infinite;
+            background-color: #ff5252 !important;
+            color: white !important;
+        }
+    </style>
+
+    <script>
+        // Tự động lấy tọa độ khi mở Modal Nhập tay
+        document.getElementById('manualModal').addEventListener('shown.bs.modal', function () {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    document.getElementById('latInput').value = position.coords.latitude;
+                    document.getElementById('lngInput').value = position.coords.longitude;
+                });
+            }
+        });
+    </script>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // 0. KHỞI TẠO DỮ LIỆU (Tuyệt đối không để formatter chèn dấu cách vào thẻ EJS)
+            const tongThu = <%= typeof tongThuNhap !== 'undefined' ? tongThuNhap : 0 %>;
+            const tongChi = <%= typeof tongChiTieu !== 'undefined' ? tongChiTieu : 0 %>;
+            const chartLabels = <%- JSON.stringify(typeof chartData !== 'undefined' ? chartData.labels : []) %>;
+            const chartValues = <%- JSON.stringify(typeof chartData !== 'undefined' ? chartData.values : []) %>;
+            const mData = <%- JSON.stringify(typeof mapData !== 'undefined' ? mapData : []) %>;
+
+            // 1. VẼ BIỂU ĐỒ TRANG CHỦ
+            const ctxMain = document.getElementById('mainMonthlyChart');
+            if (ctxMain) {
+                new Chart(ctxMain, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Tổng Thu', 'Tổng Chi'],
+                        datasets: [{
+                            data: [tongThu || 1, tongChi || 0],
+                            backgroundColor: [tongThu > 0 ? '#198754' : '#e9ecef', '#dc3545'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: { cutout: '75%', plugins: { legend: { position: 'bottom' } }, maintainAspectRatio: false }
+                });
+            }
+
+            // 2. VẼ BIỂU ĐỒ CHI TIẾT
+            const ctxDetailPie = document.getElementById('detailPieChart');
+            if (ctxDetailPie) {
+                new Chart(ctxDetailPie, {
+                    type: 'pie',
+                    data: {
+                        labels: chartValues.length > 0 ? chartLabels : ['Trống'],
+                        datasets: [{
+                            data: chartValues.length > 0 ? chartValues : [1],
+                            backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#0dcaf0', '#6c757d'],
+                            borderWidth: 2, borderColor: '#fff'
+                        }]
+                    },
+                    options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+                });
+            }
+
+            const ctxDetailBar = document.getElementById('detailBarChart');
+            if (ctxDetailBar) {
+                new Chart(ctxDetailBar, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Dòng tiền'],
+                        datasets: [
+                            { label: 'Thu nhập', data: [tongThu], backgroundColor: '#198754', borderRadius: 8 },
+                            { label: 'Chi tiêu', data: [tongChi], backgroundColor: '#dc3545', borderRadius: 8 }
+                        ]
+                    },
+                    options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: true, position: 'top' } } }
+                });
+            }
+
+            // 3. VẼ BẢN ĐỒ LEAFLET
+            const mapContainer = document.getElementById('map');
+            if (mapContainer) {
+                mapContainer.innerHTML = '';
+                const defaultPos = mData.length > 0 ? [mData[0].lat, mData[0].lng] : [10.3759, 105.4340];
+                const map = L.map('map').setView(defaultPos, 14);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(map);
+                mData.forEach(p => {
+                    L.marker([p.lat, p.lng]).addTo(map).bindPopup(`<b>${p.tenQuan}</b><br><span class="text-danger fw-bold">${p.soTien.toLocaleString()}đ</span>`);
+                });
+                setTimeout(() => map.invalidateSize(), 500);
+            }
+
+            // 4. TRỢ LÝ GIỌNG NÓI FPT AI
+            const voiceBtn = document.getElementById('btn-voice');
+            const liveText = document.getElementById('live-text');
+            const voiceModalElement = document.getElementById('voiceModal');
+
+            if (voiceBtn && voiceModalElement) {
+                // Kiểm tra xem trình duyệt có lõi nhận diện giọng nói không
+                if ('webkitSpeechRecognition' in window) {
+                    const voiceModal = new bootstrap.Modal(voiceModalElement);
+                    const recognition = new webkitSpeechRecognition();
+                    recognition.lang = 'vi-VN';
+                    recognition.continuous = false;
+                    recognition.interimResults = true;
+
+                    voiceBtn.onclick = () => {
+                        liveText.innerText = "Hãy nói gì đó...";
+                        voiceModal.show();
+                        recognition.start();
+                        voiceBtn.classList.add('recording');
+                    };
+
+                    recognition.onresult = (event) => {
+                        let interimTranscript = '';
+                        let finalTranscript = '';
+                        for (let i = event.resultIndex; i < event.results.length; ++i) {
+                            if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
+                            else interimTranscript += event.results[i][0].transcript;
+                        }
+                        liveText.innerHTML = `<span class="text-white fw-bold">${finalTranscript}</span> <span class="opacity-50">${interimTranscript}</span>`;
+                        if (finalTranscript !== '') {
+                            recognition.stop();
+                            voiceBtn.classList.remove('recording');
+                            fetch('/dashboard/input/voice', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ text: finalTranscript })
+                            }).then(res => res.json())
+                                .then(result => {
+                                    if (result.success) {
+                                        voiceModal.hide();
+                                        location.reload();
+                                    } else {
+                                        liveText.innerText = "AI chưa hiểu, ný nói lại nhé!";
+                                    }
+                                });
+                        }
+                    };
+                    recognition.onerror = () => {
+                        voiceModal.hide();
+                        voiceBtn.classList.remove('recording');
+                    };
+                } else {
+                    // NẾU TRÌNH DUYỆT KHÔNG HỖ TRỢ, HIỆN NÚT NHƯNG BÁO LỖI
+                    voiceBtn.onclick = () => {
+                        alert("⚠️ Trình duyệt của ný không hỗ trợ nhận diện giọng nói! \n\nNý hãy copy đường link (localhost:3000) và mở bằng Google Chrome hoặc Microsoft Edge trên máy tính để xài tính năng này nha!");
+                    };
+                }
+            }
+
+            // 5. TÍNH NĂNG DÒ TÌM ĐỊA ĐIỂM BẰNG OPENSTREETMAP API
+            const btnSearchMap = document.getElementById('btnSearchMap');
+            if (btnSearchMap) {
+                btnSearchMap.addEventListener('click', function (e) {
+                    e.preventDefault(); // Ngăn form submit
+                    
+                    const query = document.getElementById('searchInput').value.trim();
+                    if (!query) {
+                        alert("Ný nhập tên quán/siêu thị vào ô trước đã nhé!");
+                        return;
+                    }
+
+                    const resultBox = document.getElementById('searchResults');
+                    resultBox.innerHTML = '<li class="list-group-item text-center"><div class="spinner-border spinner-border-sm text-primary"></div> Đang quét vệ tinh...</li>';
+                    resultBox.style.display = 'block';
+
+                    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', An Giang')}&limit=5`)
+                        .then(res => res.json())
+                        .then(data => {
+                            resultBox.innerHTML = '';
+                            if (data.length === 0) {
+                                resultBox.innerHTML = '<li class="list-group-item text-muted small">Không thấy trên Map. Cứ lưu bình thường, hệ thống sẽ ghim bằng GPS hiện tại của ný.</li>';
+                                setTimeout(() => resultBox.style.display = 'none', 3000);
+                            } else {
+                                data.forEach(place => {
+                                    const li = document.createElement('li');
+                                    li.className = 'list-group-item list-group-item-action py-2';
+                                    li.style.cursor = 'pointer';
+                                    li.innerHTML = `<b class="text-primary">${place.name || query}</b><br><small class="text-muted" style="font-size: 0.75rem;">${place.display_name}</small>`;
+
+                                    li.onclick = () => {
+                                        document.getElementById('latInput').value = place.lat;
+                                        document.getElementById('lngInput').value = place.lon;
+                                        document.getElementById('searchInput').value = place.name || query;
+                                        resultBox.style.display = 'none';
+                                        alert('📍 Đã khóa tọa độ thành công!');
+                                    };
+                                    resultBox.appendChild(li);
+                                });
+                            }
+                        })
+                        .catch(err => {
+                            console.error("Lỗi quét map:", err);
+                            resultBox.innerHTML = '<li class="list-group-item text-danger small">Lỗi kết nối vệ tinh! Thử lại sau nhé.</li>';
+                        });
+                });
+            }
+        });
+    </script>
+
+    <%- include('../partials/footer') %>

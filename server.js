@@ -46,7 +46,7 @@ app.use('/expenses', expenseRoutes);
 
 // Route Test cơ bản
 app.get('/', (req, res) => {
-    res.send('<h1>Trợ lý quản lý chi tiêu sẵn sàng!</h1><p>Hệ thống đã chạy thành công.</p>');
+    res.render('home');
 });
 
 app.get('/test-map', (req, res) => {
