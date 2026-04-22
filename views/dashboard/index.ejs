@@ -547,6 +547,47 @@
                 });
             }
         });
+
+        const ocrUpload = document.getElementById('ocr-upload');
+
+        ocrUpload.addEventListener('change', async function() {
+            const file = this.files[0];
+            if (!file) return;
+
+            // Hiệu ứng giả lập đang quét cho "ngầu"
+            const btnOcr = this.parentElement; 
+            const originalContent = btnOcr.innerHTML;
+            btnOcr.innerHTML = `<div class="spinner-border spinner-border-sm text-white mb-2"></div><span class="fw-bold small d-block">ĐANG QUÉT...</span>`;
+            btnOcr.style.pointerEvents = 'none';
+
+            const formData = new FormData();
+            formData.append('billImage', file);
+
+            try {
+                const res = await fetch('/dashboard/input/ocr', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await res.json();
+                
+                if (result.success) {
+                    // Chơi âm thanh ting ting
+                    new Audio('https://www.soundjay.com/buttons/beep-07a.mp3').play();
+                    alert(`📸 AI đã đọc xong!\nSố tiền: ${result.data.soTien.toLocaleString()}đ\nHạng mục: ${result.data.hangMuc}`);
+                    location.reload();
+                } else {
+                    alert("❌ " + result.message);
+                    btnOcr.innerHTML = originalContent;
+                    btnOcr.style.pointerEvents = 'auto';
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Lỗi kết nối vệ tinh rồi ný ơi!");
+                btnOcr.innerHTML = originalContent;
+                btnOcr.style.pointerEvents = 'auto';
+            }
+        });
     </script>
 
     <%- include('../partials/footer') %>
