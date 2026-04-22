@@ -74,20 +74,9 @@
         }
 
         @keyframes pulse-red {
-            0% {
-                transform: scale(0.95);
-                box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.7);
-            }
-
-            70% {
-                transform: scale(1);
-                box-shadow: 0 0 0 15px rgba(255, 82, 82, 0);
-            }
-
-            100% {
-                transform: scale(0.95);
-                box-shadow: 0 0 0 0 rgba(255, 82, 82, 0);
-            }
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(255, 82, 82, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 82, 82, 0); }
         }
 
         .recording {
@@ -102,14 +91,8 @@
             border-radius: 16px !important;
         }
 
-        .btn-action:hover {
-            transform: translateY(-5px);
-            filter: brightness(1.1);
-        }
-
-        .btn-action:active {
-            transform: scale(0.95);
-        }
+        .btn-action:hover { transform: translateY(-5px); filter: brightness(1.1); }
+        .btn-action:active { transform: scale(0.95); }
 
         .transaction-item {
             border-radius: 16px;
@@ -121,85 +104,38 @@
             transform: translateX(5px);
         }
 
-        .bg-danger-subtle {
-            background-color: #fee2e2;
-        }
+        .bg-danger-subtle { background-color: #fee2e2; }
+        .bg-success-subtle { background-color: #d1fae5; }
+        .bg-warning-subtle { background-color: #fff3cd !important; }
+        .bg-info-subtle { background-color: #cff4fc !important; }
 
-        .bg-success-subtle {
-            background-color: #d1fae5;
-        }
+        .transaction-actions { opacity: 0; transition: 0.3s; }
+        .transaction-item:hover .transaction-actions { opacity: 1; }
 
-        .transaction-actions {
-            opacity: 0;
-            transition: 0.3s;
-        }
-
-        .transaction-item:hover .transaction-actions {
-            opacity: 1;
-        }
-
-        .cursor-pointer {
-            cursor: pointer;
-        }
+        .cursor-pointer { cursor: pointer; }
 
         #notificationBell {
             cursor: pointer;
             transition: transform 0.2s ease;
         }
 
-        #notificationBell:hover {
-            transform: scale(1.1);
-        }
+        #notificationBell:hover { transform: scale(1.1); }
 
         .dropdown-item:active {
             background-color: transparent !important;
             color: black !important;
         }
 
-        .bg-warning-subtle {
-            background-color: #fff3cd;
-        }
-
-        .bg-info-subtle {
-            background-color: #cff4fc;
-        }
-
         .dropdown-menu .dropdown-item {
-            white-space: normal !important;
-            /* Cho phép chữ tự động xuống dòng */
+            white-space: normal !important; /* Cho phép chữ tự động xuống dòng */
             word-wrap: break-word;
         }
 
-        .dropdown-item:hover {
-            background-color: #f8f9fa !important;
-        }
+        .dropdown-item:hover { background-color: #f8f9fa !important; }
 
-        /* Tùy chỉnh thanh cuộn cho bảng thông báo (nếu nhiều tin quá) */
-        div::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        div::-webkit-scrollbar-thumb {
-            background: #e0e0e0;
-            border-radius: 10px;
-        }
-
-        div::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        div::-webkit-scrollbar-thumb {
-            background: #e0e0e0;
-            border-radius: 10px;
-        }
-
-        .bg-warning-subtle {
-            background-color: #fff3cd !important;
-        }
-
-        .bg-info-subtle {
-            background-color: #cff4fc !important;
-        }
+        /* Tùy chỉnh thanh cuộn cho bảng thông báo */
+        div::-webkit-scrollbar { width: 6px; }
+        div::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 10px; }
     </style>
 </head>
 
@@ -210,26 +146,19 @@
             <span class="fw-bold fs-4">SmartSpend</span>
         </div>
 
-
-
         <nav class="nav flex-column">
-            <a href="/dashboard"
-                class="nav-link <%= typeof path !== 'undefined' && path === 'dashboard' ? 'active' : '' %>">
+            <a href="/dashboard" class="nav-link <%= typeof path !== 'undefined' && path === 'dashboard' ? 'active' : '' %>">
                 <i class="bi bi-grid-1x2-fill"></i> Tổng quan
             </a>
-            <a href="/dashboard/map"
-                class="nav-link <%= typeof path !== 'undefined' && path === 'map' ? 'active' : '' %>">
+            <a href="/dashboard/map" class="nav-link <%= typeof path !== 'undefined' && path === 'map' ? 'active' : '' %>">
                 <i class="bi bi-map-fill"></i> Bản đồ chi tiêu
             </a>
-            <a href="/dashboard/history"
-                class="nav-link <%= typeof path !== 'undefined' && path === 'history' ? 'active' : '' %>">
+            <a href="/dashboard/history" class="nav-link <%= typeof path !== 'undefined' && path === 'history' ? 'active' : '' %>">
                 <i class="bi bi-clock-history"></i> Lịch sử thu chi
             </a>
-            <a href="/dashboard/profile"
-                class="nav-link <%= typeof path !== 'undefined' && path === 'profile' ? 'active' : '' %>">
+            <a href="/dashboard/profile" class="nav-link <%= typeof path !== 'undefined' && path === 'profile' ? 'active' : '' %>">
                 <i class="bi bi-person-circle"></i> Tài khoản của tôi
             </a>
-
             <hr>
             <a href="/auth/logout" class="nav-link text-danger">
                 <i class="bi bi-box-arrow-left"></i> Đăng xuất
@@ -239,45 +168,79 @@
 
     <div class="main-content">
         <div class="d-flex justify-content-end align-items-center mb-4 border-bottom pb-3">
-            <div class="dropdown">
-                <div class="position-relative cursor-pointer" id="notificationBell" data-bs-toggle="dropdown"
-                    aria-expanded="false" style="cursor: pointer;">
-                    <i class="bi bi-bell-fill fs-4 text-secondary"></i>
-                    <span
-                        class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"></span>
-                </div>
+            
+            <div class="dropdown position-relative me-3">
+                <a class="nav-link p-0 text-secondary" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-bell-fill fs-5"></i>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger px-2" style="font-size: 0.65rem; transform: translate(-30%, 20%) !important;">
+                        3
+                        <span class="visually-hidden">thông báo chưa đọc</span>
+                    </span>
+                </a>
 
-                <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-0 mt-3"
-                    style="width: 350px; border-radius: 16px;">
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-0 mt-3" aria-labelledby="notificationDropdown" style="width: 350px; border-radius: 16px; overflow: hidden;">
+                    
                     <li class="bg-primary text-white p-3 d-flex justify-content-between align-items-center">
-                        <span class="fw-bold">Thông báo từ AI</span>
-                        <span class="badge bg-white text-primary rounded-pill">
-                            <%= (typeof dataAI !=='undefined' ) ? '1' : '0' %>
-                        </span>
+                        <span class="fw-bold">Thông báo hệ thống</span>
+                        <a href="#" class="text-decoration-none small text-white opacity-75">Đánh dấu đã đọc</a>
                     </li>
 
-                    <% if (typeof dataAI !=='undefined' ) { %>
-                        <li>
-                            <div class="dropdown-item p-3 border-bottom d-flex align-items-start shadow-none">
-                                <div class="bg-warning-subtle text-warning p-2 rounded-3 me-3">
-                                    <i class="bi bi-robot fs-5"></i>
-                                </div>
+                    <% if (typeof dataAI !== 'undefined') { %>
+                    <li>
+                        <div class="dropdown-item p-3 border-bottom d-flex align-items-start shadow-none text-wrap cursor-pointer">
+                            <div class="bg-warning-subtle text-warning p-2 rounded-3 me-3">
+                                <i class="bi bi-robot fs-5"></i>
+                            </div>
+                            <div>
+                                <p class="mb-1 small fw-bold text-dark">Tình trạng ngân sách (AI)</p>
+                                <p class="mb-1 text-muted small"><%= dataAI.noiDung %></p>
+                                <small class="text-primary fw-bold"><%= dataAI.phuongAn %></small>
+                            </div>
+                        </div>
+                    </li>
+                    <% } %>
+
+                    <li>
+                        <a class="dropdown-item py-3 border-bottom text-wrap" href="#">
+                            <div class="d-flex align-items-start">
+                                <i class="bi bi-exclamation-triangle-fill text-warning fs-5 me-3 mt-1"></i>
                                 <div>
-                                    <p class="mb-1 small fw-bold text-dark">Tình trạng ngân sách</p>
-                                    <p class="mb-0 text-muted small"><%= dataAI.noiDung %></p>
-                                    <small class="text-primary fw-bold"><%= dataAI.phuongAn %></small>
+                                    <small class="d-block fw-bold mb-1">Cảnh báo chi tiêu</small>
+                                    <small class="text-muted" style="font-size: 0.8rem;">Hạng mục Ăn uống đã vượt 50% hạn mức tháng này rồi ný ơi!</small>
                                 </div>
                             </div>
-                        </li>
-                        <% } else { %>
-                            <li class="p-3 text-center text-muted small fst-italic">
-                                Vui lòng đăng nhập để xem phân tích tài chính ný ơi!
-                            </li>
-                            <% } %>
+                        </a>
+                    </li>
 
-                                <li>
-                                    <a class="dropdown-item text-center py-2 small text-muted" href="#">Đóng</a>
-                                </li>
+                    <li>
+                        <a class="dropdown-item py-3 border-bottom text-wrap" href="#">
+                            <div class="d-flex align-items-start">
+                                <i class="bi bi-check-circle-fill text-success fs-5 me-3 mt-1"></i>
+                                <div>
+                                    <small class="d-block fw-bold mb-1">Cập nhật hệ thống</small>
+                                    <small class="text-muted" style="font-size: 0.8rem;">Đã lưu thành công hóa đơn từ Muối House.</small>
+                                </div>
+                            </div>
+                        </a>
+                    </li>
+
+                    <li>
+                        <a class="dropdown-item py-3 border-bottom text-wrap" href="#">
+                            <div class="d-flex align-items-start">
+                                <i class="bi bi-gift-fill text-info fs-5 me-3 mt-1"></i>
+                                <div>
+                                    <small class="d-block fw-bold mb-1">Mẹo tiết kiệm</small>
+                                    <small class="text-muted" style="font-size: 0.8rem;">Ghi chép chi tiêu liên tục 7 ngày để nhận huy hiệu chăm chỉ nha!</small>
+                                </div>
+                            </div>
+                        </a>
+                    </li>
+
+                    <li class="text-center mt-2 mb-2">
+                        <a class="text-primary fw-bold small text-decoration-none py-2" href="#">Xem tất cả thông báo</a>
+                    </li>
                 </ul>
             </div>
+            
         </div>
+        ```
