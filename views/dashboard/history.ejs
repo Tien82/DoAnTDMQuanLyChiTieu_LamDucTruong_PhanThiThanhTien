@@ -1,8 +1,13 @@
 <%- include('../partials/header') %>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3 class="fw-bold"><i class="bi bi-receipt me-2 text-primary"></i>Lịch sử giao dịch</h3>
-        <button class="btn btn-primary rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#manualModal"><i class="bi bi-plus-lg me-2"></i>Thêm mới</button>
+        <button class="btn btn-primary rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#manualModal">
+            <i class="bi bi-plus-lg me-2"></i>Thêm mới
+        </button>
     </div>
 
     <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-white">
@@ -35,7 +40,7 @@
                             <i class="bi fs-5 <%= item.soTien < 0 ? 'bi-cart' : 'bi-cash-stack' %>"></i>
                         </div>
                         <div>
-                            <h6 class="fw-bold mb-1"><%= item.hangMuc %></h6>
+                            <h6 class="fw-bold mb-1"><%= (item.viTri && item.viTri.tenQuan) ? item.viTri.tenQuan : item.hangMuc %></h6>
                             <small class="text-muted"><i class="bi bi-calendar3"></i> <%= new Date(item.ngayGiaoDich).toLocaleDateString('vi-VN') %> | <i><%= item.ghiChu %></i></small>
                             <br>
                             <span class="badge bg-light text-dark border mt-1"><%= item.phuongThucNhap === 'ocr' ? 'Quét bill' : 'Nhập tay' %></span>
@@ -51,11 +56,17 @@
                         <h6 class="fw-bold text-<%= item.soTien < 0 ? 'danger' : 'success' %> mb-2">
                             <%= item.soTien < 0 ? '-' : '+' %> <%= Math.abs(item.soTien).toLocaleString('vi-VN') %>đ
                         </h6>
-                        <form action="/dashboard/expense/delete/<%= item._id %>" method="POST" onsubmit="return confirm('Ný có chắc chắn muốn xóa giao dịch này không?');">
-                            <button type="submit" class="btn btn-sm text-secondary border-0 bg-transparent p-0 btn-trash">
-                                <i class="bi bi-trash fs-5"></i>
+                        <div class="d-flex gap-3 align-items-center">
+                            <button type="button" class="btn btn-sm text-primary border-0 bg-transparent p-0" 
+                                    onclick="openEditModal('<%= item._id %>', '<%= Math.abs(item.soTien) %>', '<%= item.hangMuc %>', '<%= item.ghiChu %>', '<%= item.soTien < 0 ? 'chi' : 'thu' %>', '<%= item.viTri ? item.viTri.tenQuan : '' %>', '<%= item.viTri && item.viTri.toaDo ? item.viTri.toaDo.lat : '' %>', '<%= item.viTri && item.viTri.toaDo ? item.viTri.toaDo.lng : '' %>')">
+                                <i class="bi bi-pencil-square fs-5"></i>
                             </button>
-                        </form>
+                            <form action="/dashboard/delete/<%= item._id %>" method="POST" onsubmit="return confirm('Ný có chắc chắn muốn xóa giao dịch này không?');">
+                                <button type="submit" class="btn btn-sm text-secondary border-0 bg-transparent p-0 btn-trash">
+                                    <i class="bi bi-trash fs-5"></i>
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             <% }) %>
@@ -79,11 +90,279 @@
     </div>
 </div>
 
+<div class="modal fade" id="manualModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius: 24px;">
+            <div class="modal-header border-0 px-4 pt-4">
+                <h5 class="modal-title fw-bold">Thêm giao dịch mới</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form action="/dashboard/input/manual" method="POST">
+                    <input type="hidden" name="lat" id="latInput">
+                    <input type="hidden" name="lng" id="lngInput">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">Số tiền (VNĐ)</label>
+                        <input type="number" name="soTien" class="form-control border-0 bg-light py-2" required>
+                    </div>
+                    <div class="mb-3 position-relative">
+                        <label class="form-label small fw-bold text-muted">Tên địa điểm / Quán ăn</label>
+                        <div class="input-group">
+                            <input type="text" name="tenQuan" id="searchInput" class="form-control border-0 bg-light py-2" placeholder="Ví dụ: Siêu thị Mega">
+                            <button class="btn btn-primary fw-bold" type="button" id="btnSearchMap"><i class="bi bi-search"></i> Tìm Map</button>
+                        </div>
+                        <div class="text-end mt-2">
+                            <a href="#" id="btnToggleMiniMap" class="small text-decoration-none text-success fw-bold"><i class="bi bi-geo-alt"></i> Chọn trực tiếp trên bản đồ</a>
+                        </div>
+                        <div id="miniMapContainer" style="display: none; height: 200px; border-radius: 12px; margin-top: 10px;" class="border shadow-sm"></div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">Hạng mục</label>
+                            <select name="hangMuc" class="form-select border-0 bg-light">
+                                <option value="Ăn uống">🍜 Ăn uống</option>
+                                <option value="Di chuyển">🚗 Di chuyển</option>
+                                <option value="Mua sắm">🛍️ Mua sắm</option>
+                                <option value="Giải trí">🎮 Giải trí</option>
+                                <option value="Khác">⚙️ Khác</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">Loại</label>
+                            <select name="loai" class="form-select border-0 bg-light">
+                                <option value="chi">Chi tiêu (-)</option>
+                                <option value="thu">Thu nhập (+)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-muted">Ghi chú</label>
+                        <input type="text" name="ghiChu" class="form-control border-0 bg-light py-2" placeholder="Ný tiêu vào việc gì thế?">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-pill">LƯU GIAO DỊCH</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius: 24px;">
+            <div class="modal-header border-0 px-4 pt-4">
+                <h5 class="modal-title fw-bold text-primary"><i class="bi bi-pencil-square me-2"></i>Sửa giao dịch</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="editForm" action="" method="POST">
+                    <input type="hidden" name="lat" id="editLat">
+                    <input type="hidden" name="lng" id="editLng">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">Số tiền (VNĐ)</label>
+                        <input type="number" name="soTien" id="editSoTien" class="form-control border-0 py-2" style="background-color: #e9ecef; cursor: not-allowed;" readonly>
+                    </div>
+                    <div class="mb-3 position-relative">
+                        <label class="form-label small fw-bold text-muted">Tên quán / Địa điểm</label>
+                        <div class="input-group">
+                            <input type="text" name="tenQuan" id="editTenQuan" class="form-control border-0 bg-light py-2">
+                            <button class="btn btn-primary fw-bold" type="button" id="btnEditSearchMap"><i class="bi bi-search"></i> Quét Radar</button>
+                        </div>
+                        <div class="text-end mt-2">
+                            <a href="#" id="btnToggleEditMiniMap" class="small text-decoration-none text-success fw-bold"><i class="bi bi-geo-alt"></i> Chọn trực tiếp trên Map</a>
+                        </div>
+                        <div id="editMiniMapContainer" style="display: none; height: 200px; border-radius: 12px; margin-top: 10px;" class="border shadow-sm"></div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">Hạng mục</label>
+                            <select name="hangMuc" id="editHangMuc" class="form-select border-0 bg-light">
+                                <option value="Ăn uống">🍜 Ăn uống</option>
+                                <option value="Di chuyển">🚗 Di chuyển</option>
+                                <option value="Mua sắm">🛍️ Mua sắm</option>
+                                <option value="Giải trí">🎮 Giải trí</option>
+                                <option value="Khác">⚙️ Khác</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">Loại</label>
+                            <select name="loai" id="editLoai" class="form-select border-0" style="background-color: #e9ecef; cursor: not-allowed;" disabled>
+                                <option value="chi">Chi tiêu (-)</option>
+                                <option value="thu">Thu nhập (+)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-muted">Ghi chú</label>
+                        <input type="text" name="ghiChu" id="editGhiChu" class="form-control border-0 bg-light py-2">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-pill">CẬP NHẬT LẠI</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('msg')) {
+        const msgType = urlParams.get('msg');
+        let title = 'Thành công!';
+        let text = 'Đã ghi nhận giao dịch vào hệ thống.';
+        if (msgType === 'updated') {
+            title = 'Đã cập nhật!';
+            text = 'Thông tin giao dịch đã được sửa.';
+        }
+        Swal.fire({
+            icon: 'success',
+            title: title,
+            text: text,
+            timer: 2500,
+            showConfirmButton: false,
+            backdrop: `rgba(0,0,123,0.2)`
+        });
+        window.history.replaceState(null, null, window.location.pathname);
+    }
+
+    let manualMiniMap = null;
+    let manualMiniMarker = null;
+    let editMiniMap = null;
+    let editMiniMarker = null;
+
     function showBill(imageUrl) {
         document.getElementById('billImagePreview').src = imageUrl;
         new bootstrap.Modal(document.getElementById('billViewModal')).show();
     }
-</script>
 
+    document.getElementById('manualModal').addEventListener('shown.bs.modal', function () {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(pos) {
+                document.getElementById('latInput').value = pos.coords.latitude;
+                document.getElementById('lngInput').value = pos.coords.longitude;
+            });
+        }
+    });
+
+    document.getElementById('btnToggleMiniMap').onclick = function(e) {
+        e.preventDefault();
+        const container = document.getElementById('miniMapContainer');
+        if (container.style.display === 'none') {
+            container.style.display = 'block';
+            this.innerHTML = '<i class="bi bi-x-circle"></i> Đóng bản đồ';
+            const lat = parseFloat(document.getElementById('latInput').value) || 10.3759;
+            const lng = parseFloat(document.getElementById('lngInput').value) || 105.4340;
+            if (!manualMiniMap) {
+                manualMiniMap = L.map('miniMapContainer').setView([lat, lng], 16);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(manualMiniMap);
+                manualMiniMarker = L.marker([lat, lng], {draggable: true}).addTo(manualMiniMap);
+                manualMiniMarker.on('dragend', function (event) {
+                    const pos = event.target.getLatLng();
+                    updateLocationData('latInput', 'lngInput', 'searchInput', pos.lat, pos.lng);
+                });
+                manualMiniMap.on('click', function(e) {
+                    manualMiniMarker.setLatLng(e.latlng);
+                    updateLocationData('latInput', 'lngInput', 'searchInput', e.latlng.lat, e.latlng.lng);
+                });
+            } else {
+                manualMiniMap.setView([lat, lng], 16);
+                manualMiniMarker.setLatLng([lat, lng]);
+            }
+            setTimeout(() => manualMiniMap.invalidateSize(), 300);
+        } else {
+            container.style.display = 'none';
+            this.innerHTML = '<i class="bi bi-geo-alt"></i> Chọn trực tiếp trên bản đồ';
+        }
+    };
+
+    function openEditModal(id, soTien, hangMuc, ghiChu, loai, tenQuan, lat, lng) {
+        document.getElementById('editForm').action = '/dashboard/edit/' + id;
+        document.getElementById('editSoTien').value = soTien;
+        document.getElementById('editHangMuc').value = hangMuc;
+        document.getElementById('editGhiChu').value = ghiChu;
+        document.getElementById('editLoai').value = loai;
+        document.getElementById('editTenQuan').value = tenQuan;
+        const safeLat = parseFloat(lat) || 10.3759;
+        const safeLng = parseFloat(lng) || 105.4340;
+        document.getElementById('editLat').value = safeLat;
+        document.getElementById('editLng').value = safeLng;
+        new bootstrap.Modal(document.getElementById('editModal')).show();
+        
+        const container = document.getElementById('editMiniMapContainer');
+        container.style.display = 'none';
+        document.getElementById('btnToggleEditMiniMap').innerHTML = '<i class="bi bi-geo-alt"></i> Chọn trực tiếp trên Map';
+    }
+
+    document.getElementById('btnToggleEditMiniMap').onclick = function(e) {
+        e.preventDefault();
+        const container = document.getElementById('editMiniMapContainer');
+        if (container.style.display === 'none') {
+            container.style.display = 'block';
+            this.innerHTML = '<i class="bi bi-x-circle"></i> Đóng bản đồ';
+            const lat = parseFloat(document.getElementById('editLat').value);
+            const lng = parseFloat(document.getElementById('editLng').value);
+            if (!editMiniMap) {
+                editMiniMap = L.map('editMiniMapContainer').setView([lat, lng], 16);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(editMiniMap);
+                editMiniMarker = L.marker([lat, lng], {draggable: true}).addTo(editMiniMap);
+                editMiniMarker.on('dragend', function (event) {
+                    const pos = event.target.getLatLng();
+                    updateLocationData('editLat', 'editLng', 'editTenQuan', pos.lat, pos.lng);
+                });
+                editMiniMap.on('click', function(e) {
+                    editMiniMarker.setLatLng(e.latlng);
+                    updateLocationData('editLat', 'editLng', 'editTenQuan', e.latlng.lat, e.latlng.lng);
+                });
+            } else {
+                editMiniMap.setView([lat, lng], 16);
+                editMiniMarker.setLatLng([lat, lng]);
+            }
+            setTimeout(() => editMiniMap.invalidateSize(), 300);
+        } else {
+            container.style.display = 'none';
+            this.innerHTML = '<i class="bi bi-geo-alt"></i> Chọn trực tiếp trên Map';
+        }
+    };
+
+    function updateLocationData(latId, lngId, nameId, lat, lng) {
+        document.getElementById(latId).value = lat;
+        document.getElementById(lngId).value = lng;
+        const input = document.getElementById(nameId);
+        input.placeholder = "Đang quét vệ tinh...";
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.display_name) {
+                    input.value = data.name || data.address.road || data.display_name.split(',')[0];
+                }
+            });
+    }
+
+    document.getElementById('btnSearchMap').onclick = function(e) {
+        e.preventDefault();
+        searchPlace('searchInput', 'latInput', 'lngInput', manualMiniMap, manualMiniMarker);
+    };
+
+    document.getElementById('btnEditSearchMap').onclick = function(e) {
+        e.preventDefault();
+        searchPlace('editTenQuan', 'editLat', 'editLng', editMiniMap, editMiniMarker);
+    };
+
+    function searchPlace(inputId, latId, lngId, mapObj, markerObj) {
+        const query = document.getElementById(inputId).value.trim();
+        if(!query) return;
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=vn`)
+            .then(res => res.json())
+            .then(data => {
+                if(data.length > 0) {
+                    const place = data[0];
+                    document.getElementById(latId).value = place.lat;
+                    document.getElementById(lngId).value = place.lon;
+                    if(mapObj) {
+                        mapObj.setView([place.lat, place.lon], 16);
+                        markerObj.setLatLng([place.lat, place.lon]);
+                    }
+                    Swal.fire({ icon: 'success', title: 'Đã khóa tọa độ!', text: place.display_name, timer: 1500, showConfirmButton: false });
+                }
+            });
+    }
+</script>
 <%- include('../partials/footer') %>

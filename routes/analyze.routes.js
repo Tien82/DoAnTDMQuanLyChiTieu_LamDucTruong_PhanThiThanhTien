@@ -184,13 +184,13 @@ router.post('/input/manual', checkAuth, async (req, res) => {
         });
 
         await newExpense.save();
-        res.redirect('/dashboard/history'); // Lưu xong đẩy qua trang Lịch sử coi luôn
+        res.redirect('/dashboard/history?msg=success'); // Lưu xong đẩy qua trang Lịch sử coi luôn
     } catch (error) {
         console.error("Lỗi lưu giao dịch:", error);
         res.status(500).send("Lỗi server");
     }
 });
-// --- 6. NGHIỆP VỤ XÓA GIAO DỊCH ---
+// --- 6. NGHIỆP VỤ XÓA - SỬA GIAO DỊCH ---
 router.post('/delete/:id', checkAuth, async (req, res) => {
     try {
         await Expense.findOneAndDelete({ _id: req.params.id, user: req.session.userId });
@@ -198,6 +198,25 @@ router.post('/delete/:id', checkAuth, async (req, res) => {
     } catch (err) {
         console.error("Lỗi xóa DB:", err);
         res.status(500).send("Không xóa được giao dịch!");
+    }
+});
+router.post('/edit/:id', checkAuth, async (req, res) => {
+    try {
+        const { hangMuc, ghiChu, tenQuan, lat, lng } = req.body;
+
+        await Expense.findOneAndUpdate(
+            { _id: req.params.id, user: req.session.userId },
+            {
+                hangMuc: hangMuc,
+                ghiChu: ghiChu,
+                "viTri.tenQuan": tenQuan,
+                "viTri.toaDo.lat": lat ? Number(lat) : null,
+                "viTri.toaDo.lng": lng ? Number(lng) : null
+            }
+        );
+        res.redirect('/dashboard/history?msg=updated');
+    } catch (err) {
+        res.status(500).send("Lỗi hệ thống");
     }
 });
 

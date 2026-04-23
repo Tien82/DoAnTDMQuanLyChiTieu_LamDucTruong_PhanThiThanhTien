@@ -1,7 +1,12 @@
 const mongoose = require('mongoose');
 
 const ExpenseSchema = new mongoose.Schema({
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    // CỘT BẮT BUỘC ĐỂ PHÂN QUYỀN SỞ HỮU (OWNERSHIP)
+    user: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'User', 
+        required: true 
+    },
     soTien: { type: Number, required: true },
     hangMuc: { type: String, required: true }, // Ăn uống, Di chuyển, Shopping...
     ghiChu: { type: String },
@@ -9,6 +14,7 @@ const ExpenseSchema = new mongoose.Schema({
     
     // Phần dành cho OCR hóa đơn
     hinhAnhUrl: { type: String }, // Lưu link ảnh từ Cloudinary
+    billImage: { type: String, default: null },
     
     // Phần dành cho Map API
     viTri: {
@@ -20,7 +26,11 @@ const ExpenseSchema = new mongoose.Schema({
     },
     
     // Đánh dấu xem giao dịch này nhập bằng gì (Manual/Voice/OCR)
-    phuongThucNhap: { type: String, enum: ['manual', 'voice', 'ocr'], default: 'manual' }
+    phuongThucNhap: { 
+        type: String, 
+        enum: ['manual', 'voice', 'ocr'], 
+        default: 'manual' 
+    }
 });
 
 module.exports = mongoose.model('Expense', ExpenseSchema);
