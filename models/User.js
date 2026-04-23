@@ -5,6 +5,7 @@ const UserSchema = new mongoose.Schema({
     tenDangNhap: { type: String, required: true, unique: true },
     matKhau: { type: String, required: true },
     hanMucThang: { type: Number, default: 5000000 }, // Mặc định 5 triệu
+    role: { type: String, enum: ['user', 'admin'], default: 'user' },
     ngayTao: { type: Date, default: Date.now }
 });
 

@@ -241,6 +241,26 @@
                     </li>
                 </ul>
             </div>
+
+            <a href="/dashboard/profile" class="text-decoration-none transition-all">
+                <div class="user-info d-flex align-items-center bg-white px-3 py-2 rounded-pill shadow-sm border btn-action">
+                    <div class="bg-primary-subtle rounded-circle p-1 me-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                        <i class="bi bi-person-fill text-primary"></i>
+                    </div>
+                    <div class="me-2 text-start">
+                        <small class="text-muted d-block" style="font-size: 0.65rem; line-height: 1;">Tài khoản</small>
+                        <span class="small fw-bold text-dark"><%= user %></span>
+                    </div>
+                    
+                    <% if (typeof role !== 'undefined' && role === 'admin') { %>
+                        <span onclick="event.preventDefault(); window.location.href='/dashboard/admin/stats';" 
+                            class="btn btn-xs btn-danger ms-2 fw-bold pulse-admin" 
+                            style="font-size: 0.65rem; padding: 2px 10px; border-radius: 20px; z-index: 10;">
+                            ADMIN
+                        </span>
+                    <% } %>
+                </div>
+            </a>
             
         </div>
-        ```
+        

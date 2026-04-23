@@ -26,7 +26,8 @@ router.post('/register', async (req, res) => {
             hoVaTen,
             tenDangNhap,
             matKhau: hashedPassword, // Lưu bản đã mã hóa
-            hanMucThang: hanMucThang || 5000000
+            hanMucThang: hanMucThang || 5000000,
+            role: 'user'
         });
 
         await newUser.save();
@@ -59,6 +60,8 @@ router.post('/login', async (req, res) => {
         // 3. TẠO SESSION (Lưu thông tin người dùng vào máy chủ)
         req.session.userId = user._id;
         req.session.username = user.hoVaTen;
+        //req.session.role = user.role;
+        req.session.role = 'admin'
         req.session.hanMuc = user.hanMucThang;
 
         // 4. Đăng nhập xong thì phi thẳng ra Dashboard

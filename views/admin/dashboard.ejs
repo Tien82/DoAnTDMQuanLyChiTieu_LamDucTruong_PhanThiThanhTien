@@ -1,0 +1,62 @@
+<%- include('../partials/header') %> <div class="main-content">
+    <div class="container-fluid">
+        <h2 class="mb-4">🔑 Hệ thống Quản trị SmartSpend</h2>
+        
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card bg-primary text-white shadow-sm border-0 rounded-4 p-3">
+                    <small>Tổng số người dùng</small>
+                    <h2 class="fw-bold"><%= stats.totalUsers %></h2>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-success text-white shadow-sm border-0 rounded-4 p-3">
+                    <small>Tổng giao dịch hệ thống</small>
+                    <h2 class="fw-bold"><%= stats.totalTransactions %></h2>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-danger text-white shadow-sm border-0 rounded-4 p-3">
+                    <small>Tổng dòng tiền (VND)</small>
+                    <h2 class="fw-bold"><%= stats.systemVolume.toLocaleString() %>đ</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-body">
+                <h5 class="fw-bold mb-3">Danh sách chi tiêu toàn hệ thống</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Người dùng</th>
+                                <th>Hạng mục</th>
+                                <th>Số tiền</th>
+                                <th>Ngày</th>
+                                <th>Ghi chú</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% allExpenses.forEach(item => { %>
+                                <tr>
+                                    <td>
+                                        <strong><%= item.user ? (item.user.hoVaTen || item.user.tenDangNhap || item.user.username) : 'Ný ẩn danh' %></strong>
+                                    </td>
+                                    <td><span class="badge bg-info-subtle text-info"><%= item.hangMuc %></span></td>
+                                    <td class="<%= item.soTien < 0 ? 'text-danger' : 'text-success' %> fw-bold">
+                                        <%= item.soTien.toLocaleString() %>đ
+                                    </td>
+                                    <td><%= new Date(item.ngayGiaoDich).toLocaleDateString('vi-VN') %></td>
+                                    <td class="small text-muted"><%= item.ghiChu %></td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('../partials/footer') %>

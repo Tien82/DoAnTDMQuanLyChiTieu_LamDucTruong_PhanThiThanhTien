@@ -13,7 +13,6 @@ const app = express();
 app.use(express.json()); // Đọc dữ liệu JSON
 app.use(express.urlencoded({ extended: true })); // Đọc dữ liệu Form
 app.use(express.static(path.join(__dirname, 'public'))); // Chứa CSS, JS frontend
-app.use(express.static('public'));
 // ==========================================
 // 2. CẤU HÌNH SESSION (NẰM TRÊN ROUTES ĐỂ ROUTES CÓ THỂ XÀI)
 // ==========================================
@@ -33,6 +32,14 @@ app.set('views', path.join(__dirname, 'views'));
 // ==========================================
 // 4. ĐỊNH TUYẾN - ROUTES (NẰM DƯỚI MIDDLEWARE VÀ SESSION)
 // ==========================================
+// Middleware này giúp mọi file EJS (Header, Sidebar...) đều thấy biến user và role
+app.use((req, res, next) => {
+    res.locals.user = req.session.username || null;
+    res.locals.userId = req.session.userId || null;
+    res.locals.role = req.session.role || 'user'; // Mặc định là user
+    next();
+});
+
 // Các Route từ nhánh kéo về (Nhóm 1)
 const analyzeRoutes = require('./routes/analyze.routes');
 app.use('/dashboard', analyzeRoutes);

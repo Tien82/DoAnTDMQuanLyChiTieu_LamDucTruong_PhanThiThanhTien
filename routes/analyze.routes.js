@@ -10,12 +10,22 @@ const Tesseract = require('tesseract.js');
 const upload = multer({ dest: 'uploads/' });
 const fs = require('fs');
 
+
 // Middleware kiểm tra đăng nhập
 const checkAuth = (req, res, next) => {
     if (req.session && req.session.userId) {
         return next();
     }
     res.redirect('/auth/login');
+};
+
+// Middleware kiểm tra Admin
+const checkAdmin = (req, res, next) => {
+    // Phải qua cửa checkAuth trước, sau đó mới check tới quyền admin
+    if (req.session && req.session.role === 'admin') {
+        return next();
+    }
+    res.status(403).send("🚫 Ný không phải Admin, đừng có mà 'hack' nhe!");
 };
 
 /**
@@ -40,6 +50,8 @@ async function getSharedDataAI(userId, sessionHanMuc) {
         expenses // Trả về luôn để các route đỡ phải query lại
     };
 }
+
+
 
 // --- 1. TRANG DASHBOARD CHÍNH ---
 router.get('/', checkAuth, async (req, res) => {
@@ -277,10 +289,7 @@ router.post('/map/update/:id', checkAuth, async (req, res) => {
         res.status(500).send("Lỗi cập nhật giá trên bản đồ");
     }
 });
-const multer = require('multer');
-const Tesseract = require('tesseract.js');
 
-const upload = multer({ dest: 'uploads/' });
 
 router.post('/scan-bill', upload.single('billImage'), async (req, res) => {
     try {
@@ -318,9 +327,8 @@ router.post('/scan-bill', upload.single('billImage'), async (req, res) => {
 // --- 10. XỬ LÝ NHẬP LIỆU ẢNH HÓA ĐƠN (OCR) ---
 router.post('/input/ocr', checkAuth, upload.single('billImage'), async (req, res) => {
     try {
-        if (!req.file) return res.status(400).json({ success: false, message: "Không tìm thấy ảnh ný ơi!" });
+        if (!req.file) return res.status(400).json({ success: false, message: "Không tìm thấy ảnh!" });
 
-        // 1. Chạy AI quét chữ
         const result = await Tesseract.recognize(req.file.path, 'vie+eng');
         const text = result.data.text;
         const lines = text.split('\n');
@@ -328,78 +336,60 @@ router.post('/input/ocr', checkAuth, upload.single('billImage'), async (req, res
         let tongTien = 0;
         let hangMuc = 'Mua sắm';
 
-        // 2. LOGIC AI TỈNH TÁO: Tìm số tiền thực tế
-        // Tìm dòng chứa từ khóa "Tổng" hoặc "Total"
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].toLowerCase();
-            if (line.includes('total') || line.includes('tổng') || line.includes('cộng') || line.includes('subtotal') || line.includes('cash')) {
-                
-                // Quét tất cả các số trong dòng đó hoặc dòng ngay sau nó
-                const combinedText = lines[i] + ' ' + (lines[i+1] || '');
-                const numbersFound = combinedText.match(/\d+[\d.,]*/g);
-                
-                if (numbersFound) {
-                    // Lấy số cuối cùng tìm được (thường là kết quả phép tính)
-                    const rawNum = numbersFound[numbersFound.length - 1];
-                    const cleanNum = parseInt(rawNum.replace(/[.,]/g, ''));
-                    
-                    // Lọc: Số tiền bill trà sữa thường < 2 triệu và không thể là số điện thoại (10 số)
-                    if (cleanNum > 1000 && cleanNum < 5000000 && rawNum.length < 9) {
-                        tongTien = cleanNum;
-                        break; 
+            if (line.match(/total|tổng|cộng|cash/)) {
+                const numbers = (lines[i] + ' ' + (lines[i+1] || '')).match(/\d+[\d.]*/g);
+                if (numbers) {
+                    const rawNum = numbers[numbers.length - 1];
+                    const val = parseInt(rawNum.replace(/\./g, ''));
+                    if (val > 1000 && val < 5000000 && rawNum.length < 9) {
+                        tongTien = val;
+                        break;
                     }
                 }
             }
         }
 
-        // 3. Nếu vẫn không tìm thấy bằng từ khóa, dùng phương án dự phòng (Max) nhưng có bộ lọc
-        if (tongTien === 0) {
-            const allNumbers = text.match(/\d+[\d.,]*/g) || [];
-            const filteredNumbers = allNumbers
-                .map(n => ({ raw: n, val: parseInt(n.replace(/[.,]/g, '')) }))
-                .filter(n => n.val >= 1000 && n.val < 5000000 && n.raw.length < 9); // Loại bỏ số điện thoại (thường 10 số)
-
-            if (filteredNumbers.length > 0) {
-                tongTien = Math.max(...filteredNumbers.map(n => n.val));
-            }
-        }
-
-        // 4. PHÂN TÍCH HẠNG MỤC (Lọc từ khóa thông minh hơn)
+        // Nhận diện hạng mục
         const textLower = text.toLowerCase();
-        const keywords = {
-            'Ăn uống': ['trà', 'sữa', 'matcha', 'latte', 'food', 'cafe', 'phở', 'bún', 'cơm', 'house', 'quán'],
-            'Di chuyển': ['grab', 'be', 'xe ôm', 'xăng', 'petrol', 'taxi'],
-            'Mua sắm': ['siêu thị', 'market', 'mall', 'shopee', 'lazada', 'tiki']
-        };
+        if (textLower.match(/trà|sữa|cafe|muoi house|food|cơm|phở/)) hangMuc = 'Ăn uống';
+        else if (textLower.match(/grab|be|xe ôm|ship|km/)) hangMuc = 'Di chuyển';
 
-        for (const [category, words] of Object.entries(keywords)) {
-            if (words.some(word => textLower.includes(word))) {
-                hangMuc = category;
-                break;
-            }
-        }
-
-        // 5. LƯU VÀO DATABASE
-        if (tongTien > 0) {
-            const newExpense = new Expense({
-                user: req.session.userId,
-                soTien: -Math.abs(tongTien),
-                hangMuc: hangMuc,
-                ghiChu: `📸 OCR: Bill tại ${hangMuc}`,
-                phuongThucNhap: 'ocr'
-            });
-
-            await newExpense.save();
-            if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path); // Xóa ảnh tạm
-            
-            return res.json({ success: true, data: { soTien: tongTien, hangMuc: hangMuc } });
-        }
-
-        res.status(422).json({ success: false, message: "AI đọc xong mà không thấy số tiền nào hợp lý cả!" });
+        // Xóa ảnh tạm sau khi quét xong
+        if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+        
+        // TRẢ KẾ QUẢ VỀ CHO MODAL XÁC NHẬN (KHÔNG LƯU DB Ở ĐÂY)
+        res.json({ success: true, data: { soTien: tongTien, hangMuc: hangMuc } });
 
     } catch (err) {
         console.error("Lỗi OCR:", err);
-        res.status(500).json({ success: false, message: "Hệ thống đang bận, thử lại sau nhé ný!" });
+        res.status(500).json({ success: false, message: "Lỗi hệ thống!" });
+    }
+});
+
+// --- 11. TRANG QUẢN TRỊ ADMIN (TỔNG QUAN HỆ THỐNG) ---
+router.get('/admin/stats', checkAuth, checkAdmin, async (req, res) => {
+    try {
+        // Ný phải để dòng này Ở ĐÂY nè!
+        const allExpenses = await Expense.find().populate('user'); 
+        
+        const totalUsers = await User.countDocuments();
+        const stats = {
+            totalUsers,
+            totalTransactions: allExpenses.length,
+            systemVolume: allExpenses.reduce((sum, item) => sum + Math.abs(item.soTien), 0)
+        };
+
+        res.render('admin/dashboard', { 
+            user: req.session.username, 
+            path: 'admin', 
+            stats, 
+            allExpenses 
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Lỗi Admin");
     }
 });
 module.exports = router;
