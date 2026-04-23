@@ -2,61 +2,78 @@
 
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="fw-bold"><i class="bi bi-map-fill me-2 text-primary"></i>Bản đồ Chi tiêu</h3>
-        <p class="text-muted mb-0">Nhấn vào các ghim để cập nhật giá hoặc xóa địa điểm.</p>
+        <h3 class="fw-bold"><i class="bi bi-map-fill me-2 text-primary"></i>Bản đồ chi tiêu</h3>
+        <p class="text-muted mb-0">Nhấn vào ghim để cập nhật thông tin hoặc xóa địa điểm.</p>
     </div>
 
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-        <div id="mainMap" style="height: 70vh; width: 100%; z-index: 1;"></div>
+        <div id="mainMap" style="height: 75vh; width: 100%; z-index: 1;"></div>
     </div>
 </div>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+<style>
+    /* Tùy chỉnh để các nút trong Popup bản đồ không bị tràn */
+    .leaflet-popup-content-wrapper { border-radius: 15px; padding: 5px; }
+    .leaflet-popup-content { margin: 15px; width: 220px !important; }
+    .btn-xs { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+</style>
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        // Lấy dữ liệu từ Backend
         const mData = <%- JSON.stringify(typeof mapData !== 'undefined' ? mapData : []) %>;
         
-        // Focus về An Giang nếu chưa có data, có thì lấy điểm giao dịch đầu tiên
+        // Vị trí mặc định là Long Xuyên, An Giang nếu không có dữ liệu
         const defaultPos = mData.length > 0 ? [mData[0].lat, mData[0].lng] : [10.3759, 105.4340];
         const map = L.map('mainMap').setView(defaultPos, 14);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
-            attribution: '© OpenStreetMap' 
+            attribution: '© OpenStreetMap contributors' 
         }).addTo(map);
 
-        // Duyệt qua dữ liệu và cắm ghim
         mData.forEach(p => {
-            const marker = L.marker([p.lat, p.lng]).addTo(map);
-            
-            // TẠO FORM SỬA/XÓA BÊN TRONG POPUP CỦA BẢN ĐỒ
-            const popupContent = `
-                <div style="min-width: 200px;">
-                    <form action="/dashboard/map/update/${p.id}" method="POST" class="mb-2">
-                        <label class="small text-muted fw-bold">TÊN ĐỊA ĐIỂM</label>
-                        <input type="text" name="tenQuanMoi" class="form-control form-control-sm mb-2" value="${p.tenQuan}" required>
+            if (p.lat && p.lng) {
+                const marker = L.marker([p.lat, p.lng]).addTo(map);
+                
+                const popupContent = `
+                    <div class="p-1">
+                        <form action="/dashboard/map/update/${p.id}" method="POST" class="mb-3">
+                            <label class="small fw-bold text-muted mb-1 text-uppercase" style="font-size: 0.65rem;">Tên địa điểm</label>
+                            <input type="text" name="tenQuanMoi" class="form-control form-control-sm mb-2 border-0 bg-light" value="${p.tenQuan}" required>
+                            
+                            <label class="small fw-bold text-muted mb-1 text-uppercase" style="font-size: 0.65rem;">Số tiền chi (VNĐ)</label>
+                            <div class="input-group input-group-sm mb-3">
+                                <input type="number" name="giaMoi" class="form-control border-0 bg-light fw-bold text-danger" value="${p.soTien}" required>
+                                <span class="input-group-text border-0 bg-light small">đ</span>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-sm btn-primary w-100 fw-bold rounded-pill">Cập nhật</button>
+                        </form>
                         
-                        <label class="small text-muted fw-bold">GIÁ / SỐ TIỀN CẬP NHẬT</label>
-                        <div class="input-group input-group-sm mb-2">
-                            <input type="number" name="giaMoi" class="form-control fw-bold text-danger" value="${p.soTien}" required>
-                            <span class="input-group-text">đ</span>
+                        <div class="border-top pt-2">
+                            <form action="/dashboard/delete/${p.id}" method="POST" onsubmit="return confirm('Bạn có chắc muốn xóa điểm này khỏi bản đồ không?')">
+                                <button type="submit" class="btn btn-sm btn-link text-danger w-100 text-decoration-none small">
+                                    <i class="bi bi-trash3 me-1"></i> Xóa giao dịch
+                                </button>
+                            </form>
                         </div>
-                        
-                        <button type="submit" class="btn btn-sm btn-primary w-100 fw-bold">Cập nhật</button>
-                    </form>
-                    
-                    <form action="/dashboard/delete/${p.id}" method="POST" onsubmit="return confirm('Ný xóa điểm này khỏi bản đồ luôn hả?')">
-                        <button type="submit" class="btn btn-sm btn-outline-danger w-100">Xóa khỏi Map</button>
-                    </form>
-                </div>
-            `;
-            
-            marker.bindPopup(popupContent);
+                    </div>
+                `;
+                
+                marker.bindPopup(popupContent);
+            }
         });
 
-        // Bổ sung nút định vị người dùng trên bản đồ lớn
-        map.locate({setView: true, maxZoom: 16});
+        // Tự động định vị vị trí hiện tại của bạn
+        map.locate({setView: true, maxZoom: 15});
+
+        function onLocationError(e) {
+            console.log("Không thể định vị vị trí của bạn.");
+        }
+        map.on('locationerror', onLocationError);
     });
 </script>
 

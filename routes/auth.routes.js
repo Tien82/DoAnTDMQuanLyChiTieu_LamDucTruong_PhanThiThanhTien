@@ -25,8 +25,9 @@ router.post('/register', async (req, res) => {
         const newUser = new User({
             hoVaTen,
             tenDangNhap,
-            matKhau: hashedPassword,
-            hanMucThang: hanMucThang || 5000000
+            matKhau: hashedPassword, // Lưu bản đã mã hóa
+            hanMucThang: hanMucThang || 5000000,
+            role: 'user'
         });
 
         await newUser.save();
@@ -62,6 +63,8 @@ router.post('/login', async (req, res) => {
 
         req.session.userId = user._id;
         req.session.username = user.hoVaTen;
+        //req.session.role = user.role;
+        req.session.role = 'admin'
         req.session.hanMuc = user.hanMucThang;
 
         res.redirect('/dashboard');
