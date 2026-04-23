@@ -13,7 +13,7 @@ const app = express();
 app.use(express.json()); // Đọc dữ liệu JSON
 app.use(express.urlencoded({ extended: true })); // Đọc dữ liệu Form
 app.use(express.static(path.join(__dirname, 'public'))); // Chứa CSS, JS frontend
-
+app.use(express.static('public'));
 // ==========================================
 // 2. CẤU HÌNH SESSION (NẰM TRÊN ROUTES ĐỂ ROUTES CÓ THỂ XÀI)
 // ==========================================

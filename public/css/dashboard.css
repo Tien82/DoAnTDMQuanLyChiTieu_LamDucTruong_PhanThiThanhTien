@@ -1,0 +1,53 @@
+/* Bento UI Buttons */
+.btn-bento {
+    transition: all 0.3s ease;
+    border-radius: 20px;
+}
+.btn-bento:hover {
+    transform: translateY(-5px);
+    filter: brightness(1.1);
+}
+.icon-circle {
+    background: rgba(255, 255, 255, 0.2);
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+/* Voice Assistant Animation */
+.mic-container {
+    position: relative;
+    display: inline-block;
+}
+.pulse-ring {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100px; height: 100px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    animation: pulse-white 2s infinite;
+}
+@keyframes pulse-white {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+    100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+}
+.shadow-inner {
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Nút Microphone nhấp nháy đỏ khi ghi âm */
+@keyframes pulse-red {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(255, 82, 82, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 82, 82, 0); }
+}
+.recording {
+    animation: pulse-red 1.5s infinite;
+    background-color: #ff5252 !important;
+    color: white !important;
+}

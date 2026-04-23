@@ -63,8 +63,8 @@ router.get('/', checkAuth, async (req, res) => {
                 soTien: Math.abs(item.soTien)
             }));
 
-        res.render('dashboard/index', { 
-            user: req.session.username, 
+        res.render('dashboard/index', {
+            user: req.session.username,
             path: 'dashboard',
             tongChiTieu,
             tongThuNhap,
@@ -86,20 +86,47 @@ router.get('/', checkAuth, async (req, res) => {
 // --- 2. TRANG LỊCH SỬ GIAO DỊCH ---
 router.get('/history', checkAuth, async (req, res) => {
     try {
-        const sharedData = await getSharedDataAI(req.session.userId, req.session.hanMuc);
+        // Lấy tất cả giao dịch của user từ Database
+        let expenses = await Expense.find({ user: req.session.userId });
         
-        // Sắp xếp lại danh sách chi tiêu mới nhất lên đầu cho trang History
-        const sortedExpenses = sharedData.expenses.sort((a, b) => b.ngayGiaoDich - a.ngayGiaoDich);
+        // 1. Hứng 2 cái ngày từ thanh tìm kiếm (nếu ný có bấm nút Lọc)
+        let { tuNgay, denNgay } = req.query;
 
+        // 2. Chạy bộ lọc
+        if (tuNgay || denNgay) {
+            expenses = expenses.filter(item => {
+                let date = new Date(item.ngayGiaoDich);
+                let isValid = true;
+                
+                // Nếu có "Từ ngày", giao dịch phải xảy ra SAU ngày đó
+                if (tuNgay) {
+                    isValid = isValid && (date >= new Date(tuNgay));
+                }
+                
+                // Nếu có "Đến ngày", giao dịch phải xảy ra TRƯỚC 23:59:59 của ngày đó
+                if (denNgay) {
+                    let end = new Date(denNgay);
+                    end.setHours(23, 59, 59, 999); 
+                    isValid = isValid && (date <= end);
+                }
+                
+                return isValid; // Giữ lại những cái hợp lệ
+            });
+        }
+
+        // 3. Sắp xếp lại cho cái mới nhất lên đầu
+        const sortedExpenses = expenses.sort((a, b) => b.ngayGiaoDich - a.ngayGiaoDich);
+
+        // 4. Trả dữ liệu ra file HTML
         res.render('dashboard/history', { 
             user: req.session.username, 
             path: 'history',
-            expenses: sortedExpenses,
-            dataAI: sharedData.dataAI
+            expenses: sortedExpenses, 
+            tuNgay: tuNgay,   // Truyền ngược lại để ô input vẫn giữ ngày ný vừa gõ
+            denNgay: denNgay
         });
-    } catch (err) {
-        console.error("Lỗi trang History:", err);
-        res.status(500).send("Lỗi tải lịch sử");
+    } catch (err) { 
+        res.status(500).send("Lỗi tải lịch sử"); 
     }
 });
 
@@ -107,8 +134,8 @@ router.get('/history', checkAuth, async (req, res) => {
 router.get('/profile', checkAuth, async (req, res) => {
     try {
         const sharedData = await getSharedDataAI(req.session.userId, req.session.hanMuc);
-        res.render('dashboard/profile', { 
-            user: req.session.username, 
+        res.render('dashboard/profile', {
+            user: req.session.username,
             path: 'profile',
             dataAI: sharedData.dataAI,
             hanMuc: sharedData.hanMuc
@@ -123,13 +150,13 @@ router.post('/profile/budget', checkAuth, async (req, res) => {
     try {
         const { hanMucThang } = req.body;
         const newBudget = Number(hanMucThang);
-        
+
         // Cập nhật vào DB
         await User.findByIdAndUpdate(req.session.userId, { hanMucThang: newBudget });
-        
+
         // Cập nhật vào Session để các trang khác nhận ngay lập tức
         req.session.hanMuc = newBudget;
-        
+
         res.redirect('/dashboard/profile');
     } catch (err) {
         console.error("Lỗi cập nhật hạn mức:", err);
@@ -139,35 +166,35 @@ router.post('/profile/budget', checkAuth, async (req, res) => {
 
 // --- 5. NGHIỆP VỤ LƯU GIAO DỊCH (MANUAL) ---
 router.post('/input/manual', checkAuth, async (req, res) => {
+    // 1. Khai báo hứng thêm biến billImageUrl từ Form gửi lên
+    const { soTien, hangMuc, ghiChu, loai, lat, lng, billImageUrl } = req.body;
+
     try {
-        // Lấy thêm lat, lng, tenQuan từ body do index.ejs gửi lên
-        const { soTien, hangMuc, ghiChu, loai, lat, lng, tenQuan } = req.body;
-        
         const newExpense = new Expense({
             user: req.session.userId,
-            soTien: loai === 'chi' ? -Math.abs(Number(soTien)) : Math.abs(Number(soTien)), 
-            hangMuc: hangMuc || 'Khác',
+            soTien: loai === 'chi' ? -Number(soTien) : Number(soTien),
+            hangMuc: hangMuc,
             ghiChu: ghiChu,
-            phuongThucNhap: 'manual',
             ngayGiaoDich: new Date(),
-            // LƯU THÊM VỊ TRÍ VÀO DATABASE
+            phuongThucNhap: 'manual',
             viTri: {
-                tenQuan: tenQuan || hangMuc, 
+                tenQuan: req.body.tenQuan || hangMuc,
                 toaDo: {
                     lat: lat ? Number(lat) : null,
                     lng: lng ? Number(lng) : null
                 }
-            }
+            },
+            // 2. LƯU ĐƯỜNG LINK ẢNH VÀO DATABASE MONGODB
+            billImage: billImageUrl || null
         });
 
         await newExpense.save();
-        res.redirect('/dashboard'); 
-    } catch (err) {
-        console.error("Lỗi lưu DB:", err);
-        res.status(500).send("Lỗi lưu giao dịch!");
+        res.redirect('/dashboard/history'); // Lưu xong đẩy qua trang Lịch sử coi luôn
+    } catch (error) {
+        console.error("Lỗi lưu giao dịch:", error);
+        res.status(500).send("Lỗi server");
     }
 });
-
 // --- 6. NGHIỆP VỤ XÓA GIAO DỊCH ---
 router.post('/delete/:id', checkAuth, async (req, res) => {
     try {
@@ -210,7 +237,7 @@ router.post('/input/voice', checkAuth, async (req, res) => {
 router.get('/map', checkAuth, async (req, res) => {
     try {
         const sharedData = await getSharedDataAI(req.session.userId, req.session.hanMuc);
-        
+
         // Lấy tất cả giao dịch có tọa độ để đưa lên bản đồ lớn
         const toaDoGiaoDich = sharedData.expenses
             .filter(item => item.viTri && item.viTri.toaDo && item.viTri.toaDo.lat)
@@ -223,8 +250,8 @@ router.get('/map', checkAuth, async (req, res) => {
                 ghiChu: item.ghiChu || "Không có ghi chú"
             }));
 
-        res.render('dashboard/map', { 
-            user: req.session.username, 
+        res.render('dashboard/map', {
+            user: req.session.username,
             path: 'map',
             mapData: toaDoGiaoDich,
             dataAI: sharedData.dataAI // Để Header không bị lỗi mồ côi
@@ -240,7 +267,7 @@ router.post('/map/update/:id', checkAuth, async (req, res) => {
     try {
         await Expense.findOneAndUpdate(
             { _id: req.params.id, user: req.session.userId },
-            { 
+            {
                 soTien: -Math.abs(Number(req.body.giaMoi)), // Đảm bảo luôn là số âm (chi tiêu)
                 "viTri.tenQuan": req.body.tenQuanMoi
             }
@@ -248,6 +275,43 @@ router.post('/map/update/:id', checkAuth, async (req, res) => {
         res.redirect('/dashboard/map');
     } catch (err) {
         res.status(500).send("Lỗi cập nhật giá trên bản đồ");
+    }
+});
+const multer = require('multer');
+const Tesseract = require('tesseract.js');
+
+const upload = multer({ dest: 'uploads/' });
+
+router.post('/scan-bill', upload.single('billImage'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false });
+        }
+
+        const { data: { text } } = await Tesseract.recognize(
+            req.file.path,
+            'vie'
+        );
+
+        const numberMatches = text.match(/\d{1,3}([,.]\d{3})+/g);
+        let maxAmount = 0;
+
+        if (numberMatches) {
+            numberMatches.forEach(match => {
+                const num = parseInt(match.replace(/[,.]/g, ''));
+                if (num > maxAmount) {
+                    maxAmount = num;
+                }
+            });
+        }
+
+        res.json({
+            success: true,
+            rawText: text,
+            suggestedAmount: maxAmount
+        });
+    } catch (error) {
+        res.status(500).json({ success: false });
     }
 });
 
