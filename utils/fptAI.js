@@ -12,7 +12,7 @@ const phanTichChiTieu = async (vanBan) => {
                 { content: vanBan }, 
                 {
                     headers: { 
-                        'Authorization': `Bearer ${process.env.FPT_AI_KEY}`,
+                        'Authorization': `Bearer ${'EdxeXCSasB3cQuCx9B9elMzJhxLG9LNT'}`,
                         'Content-Type': 'application/json',
                         'Timeout': 5000 // Đợi tối đa 5s
                     }

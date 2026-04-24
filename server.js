@@ -29,7 +29,7 @@ app.use(express.static(path.join(__dirname, 'public'))); // Đường dẫn cho 
 // 4. CẤU HÌNH SESSION (PHẢI NẰM TRÊN ROUTES)
 // ==========================================
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'smartspend_secret_key',
+    secret: 'BiMatCuaNhomMinhLa123!@#',
     resave: false,
     saveUninitialized: false,
     cookie: { 
@@ -95,11 +95,11 @@ app.get('/test-chart', (req, res) => {
 // ==========================================
 // 7. KẾT NỐI DATABASE & KHỞI CHẠY SERVER
 // ==========================================
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect('mongodb://admin:admin123@ac-axtjcoj-shard-00-02.st92bky.mongodb.net:27017/SmartFinance?ssl=true&authSource=admin')
     .then(() => console.log('✅ Đã kết nối thành công tới MongoDB Atlas!'))
     .catch(err => console.error('❌ Lỗi kết nối MongoDB:', err));
 
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 app.listen(PORT, () => {
     console.log(`🚀 Hệ thống SmartSpend AI đang chạy tại: http://localhost:${PORT}`);
 });
