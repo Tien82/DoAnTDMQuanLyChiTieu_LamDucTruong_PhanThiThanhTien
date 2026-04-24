@@ -43,8 +43,15 @@
                             <h6 class="fw-bold mb-1"><%= (item.viTri && item.viTri.tenQuan) ? item.viTri.tenQuan : item.hangMuc %></h6>
                             <small class="text-muted"><i class="bi bi-calendar3"></i> <%= new Date(item.ngayGiaoDich).toLocaleDateString('vi-VN') %> | <i><%= item.ghiChu %></i></small>
                             <br>
-                            <span class="badge bg-light text-dark border mt-1"><%= item.phuongThucNhap === 'ocr' ? 'Quét bill' : 'Nhập tay' %></span>
-                            
+                            <span class="badge bg-light text-dark border shadow-sm small py-1 px-2" style="font-size: 0.7rem;">
+                                <% if (item.phuongThucNhap === 'voice') { %>
+                                    <i class="bi bi-mic-fill text-primary me-1"></i> Giọng nói
+                                <% } else if (item.phuongThucNhap === 'ocr') { %>
+                                    <i class="bi bi-camera-fill text-success me-1"></i> Quét hóa đơn
+                                <% } else { %>
+                                    <i class="bi bi-pencil-square text-secondary me-1"></i> Nhập tay
+                                <% } %>
+                            </span>
                             <% if (item.billImage) { %>
                                 <button class="btn btn-sm btn-outline-info rounded-pill ms-2" onclick="showBill('<%= item.billImage %>')">
                                     <i class="bi bi-image"></i> Xem hóa đơn

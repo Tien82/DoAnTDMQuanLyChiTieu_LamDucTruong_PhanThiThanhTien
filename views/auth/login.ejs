@@ -1,41 +1,137 @@
 <%- include('../partials/header') %>
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-4">
-            <div class="card shadow-sm p-4 border-0">
-                <div class="text-center mb-4">
-                    <i class="bi bi-person-circle text-primary" style="font-size: 3rem;"></i>
-                    <h3 class="fw-bold">Đăng nhập</h3>
-                    <p class="text-muted small">Chào mừng bạn quay trở lại!</p>
-                </div>
+<style>
+    .login-wrapper {
+        min-height: 75vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .login-card {
+        border-radius: 24px;
+        border: none;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        max-width: 400px;
+        width: 100%;
+    }
+</style>
 
-                <form action="/auth/login" method="POST">
+<div class="login-wrapper">
+    <div class="card login-card p-4 bg-white">
+        <div class="text-center mb-4">
+            <i class="bi bi-person-circle text-primary display-4"></i>
+            <h4 class="fw-bold mt-2">Đăng nhập</h4>
+            <p class="text-muted small">Chào mừng bạn quay trở lại!</p>
+        </div>
+
+        <form action="/auth/login" method="POST">
+            <div class="mb-3">
+                <label class="form-label small fw-bold text-muted">Tên đăng nhập</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0"><i class="bi bi-person text-muted"></i></span>
+                    <input type="text" name="tenDangNhap" class="form-control border-0 bg-light py-2" placeholder="Nhập tên đăng nhập" required>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <div class="d-flex justify-content-between">
+                    <label class="form-label small fw-bold text-muted">Mật khẩu</label>
+                    <a href="#" class="small text-decoration-none text-primary fw-semibold" 
+                       data-bs-toggle="modal" data-bs-target="#forgotPasswordModal">
+                       Quên mật khẩu?
+                    </a>
+                </div>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0"><i class="bi bi-lock text-muted"></i></span>
+                    <input type="password" name="matKhau" class="form-control border-0 bg-light py-2" placeholder="********" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 py-2 fw-bold rounded-pill shadow-sm">Vào hệ thống</button>
+        </form>
+
+        <div class="text-center mt-4">
+            <p class="small text-muted">Chưa có tài khoản? <a href="/auth/register" class="text-primary text-decoration-none fw-bold">Đăng ký ngay</a></p>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="forgotPasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 24px;">
+            <div class="modal-header border-0 px-4 pt-4 pb-0">
+                <h5 class="modal-title fw-bold">Khôi phục mật khẩu</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form action="/auth/forgot-password" method="POST" id="forgotPasswordForm">
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Tên đăng nhập</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-person"></i></span>
-                            <input type="text" name="tenDangNhap" class="form-control bg-light border-start-0" placeholder="user123" required>
-                        </div>
+                        <label class="form-label small fw-bold text-muted">TÊN ĐĂNG NHẬP CỦA BẠN</label>
+                        <input type="text" name="tenDangNhap" class="form-control border-0 bg-light py-2" required>
                     </div>
-
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">MẬT KHẨU MỚI</label>
+                        <input type="password" name="newPassword" id="newPassword" class="form-control border-0 bg-light py-2" required>
+                    </div>
                     <div class="mb-4">
-                        <label class="form-label fw-semibold">Mật khẩu</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock"></i></span>
-                            <input type="password" name="matKhau" class="form-control bg-light border-start-0" placeholder="••••••••" required>
-                        </div>
+                        <label class="form-label small fw-bold text-muted">XÁC NHẬN MẬT KHẨU MỚI</label>
+                        <input type="password" id="confirmPassword" class="form-control border-0 bg-light py-2" required>
+                        <div id="passwordError" class="text-danger small mt-1" style="display: none;">Mật khẩu xác nhận không khớp!</div>
                     </div>
-
-                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">Vào hệ thống</button>
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold rounded-pill">XÁC NHẬN ĐỔI</button>
                 </form>
-
-                <div class="mt-4 text-center">
-                    <p class="small text-muted">Chưa có tài khoản? <a href="/auth/register" class="text-decoration-none">Đăng ký ngay</a></p>
-                </div>
             </div>
         </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const msg = urlParams.get('msg');
+
+    if (msg === 'fail') {
+        Swal.fire({ icon: 'error', title: 'Đăng nhập thất bại', text: 'Sai tài khoản hoặc mật khẩu!' });
+    } else if (msg === 'reset_success') {
+        Swal.fire({ icon: 'success', title: 'Thành công', text: 'Mật khẩu đã được làm mới, hãy đăng nhập thử nhé!' });
+    } else if (msg === 'user_not_found') {
+        // ĐÂY LÀ CHỖ CHẶN TÊN ĐĂNG NHẬP SAI
+        Swal.fire({ 
+            icon: 'warning', 
+            title: 'Không tìm thấy user', 
+            text: 'Tên đăng nhập bạn nhập không tồn tại trên hệ thống!',
+            confirmButtonColor: '#ffc107'
+        });
+    } else if (msg === 'error') {
+        Swal.fire({ icon: 'error', title: 'Lỗi hệ thống', text: 'Có lỗi xảy ra, vui lòng thử lại sau.' });
+    }
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('msg') === 'fail') {
+        Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Sai tài khoản hoặc mật khẩu!', confirmButtonColor: '#0d6efd' });
+    }
+
+    // Logic kiểm tra mật khẩu khớp nhau
+    const forgotForm = document.getElementById('forgotPasswordForm');
+    const newPw = document.getElementById('newPassword');
+    const confirmPw = document.getElementById('confirmPassword');
+    const errorDiv = document.getElementById('passwordError');
+
+    forgotForm.addEventListener('submit', function(e) {
+        if (newPw.value !== confirmPw.value) {
+            e.preventDefault(); // Ngăn chặn gửi form
+            errorDiv.style.display = 'block';
+            confirmPw.classList.add('border', 'border-danger');
+        } else {
+            errorDiv.style.display = 'none';
+            confirmPw.classList.remove('border', 'border-danger');
+        }
+    });
+
+    // Ẩn thông báo lỗi khi người dùng bắt đầu nhập lại
+    confirmPw.addEventListener('input', function() {
+        errorDiv.style.display = 'none';
+        confirmPw.classList.remove('border', 'border-danger');
+    });
+</script>
 
 <%- include('../partials/footer') %>

@@ -45,33 +45,51 @@ router.get('/login', (req, res) => {
     res.render('auth/login', { error });
 });
 
+// Logic Đăng nhập
 router.post('/login', async (req, res) => {
     try {
         const { tenDangNhap, matKhau } = req.body;
-
         const user = await User.findOne({ tenDangNhap });
-        if (!user) {
-            req.session.error = 'Tài khoản không tồn tại!';
-            return res.redirect('/auth/login');
+
+        if (user && await bcrypt.compare(matKhau, user.matKhau)) {
+            req.session.userId = user._id;
+            req.session.username = user.hoVaTen;
+            req.session.role = user.role;
+            req.session.hanMuc = user.hanMucThang;
+            return res.redirect('/dashboard');
         }
-
-        const isMatch = await bcrypt.compare(matKhau, user.matKhau);
-        if (!isMatch) {
-            req.session.error = 'Sai mật khẩu ný ơi!';
-            return res.redirect('/auth/login');
-        }
-
-        req.session.userId = user._id;
-        req.session.username = user.hoVaTen;
-        //req.session.role = user.role;
-        req.session.role = 'admin'
-        req.session.hanMuc = user.hanMucThang;
-
-        res.redirect('/dashboard');
-
+        res.redirect('/auth/login?msg=fail'); // Trả về lỗi để hiện SweetAlert
     } catch (err) {
-        req.session.error = 'Lỗi đăng nhập';
-        res.redirect('/auth/login');
+        res.status(500).send("Lỗi hệ thống");
+    }
+});
+
+router.get('/forgot-password', (req, res) => {
+    res.render('auth/forgot-password');
+});
+
+router.post('/forgot-password', async (req, res) => {
+    try {
+        const { tenDangNhap, newPassword } = req.body;
+        
+        // 1. Tìm người dùng trong Database
+        const user = await User.findOne({ tenDangNhap: tenDangNhap });
+
+        // 2. Nếu KHÔNG tìm thấy, trả về lỗi ngay lập tức
+        if (!user) {
+            return res.redirect('/auth/login?msg=user_not_found');
+        }
+
+        // 3. Nếu tìm thấy, mới tiến hành mã hóa và lưu mật khẩu mới
+        const salt = await bcrypt.genSalt(10);
+        user.matKhau = await bcrypt.hash(newPassword, salt);
+        await user.save();
+
+        // 4. Thành công thì báo tin vui
+        res.redirect('/auth/login?msg=reset_success');
+    } catch (err) {
+        console.error(err);
+        res.redirect('/auth/login?msg=error');
     }
 });
 

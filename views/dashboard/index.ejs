@@ -179,6 +179,82 @@
         </div>
     </div>
 </div>
+<div class="row g-4 mt-2">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm p-4 rounded-4 h-100">
+            <h6 class="fw-bold mb-3"><i class="bi bi-piggy-bank text-primary me-2"></i>Quỹ tiết kiệm</h6>
+            
+            <div id="savings-list">
+                <% if (savings.length > 0) { %>
+                    <% savings.forEach(item => { %>
+                        <div class="mb-4 p-2 border-bottom border-light">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="fw-bold small"><%= item.tenMucTieu %></span>
+                                <span class="small text-muted"><%= item.soTienHienCo.toLocaleString() %> / <%= item.mucTieuSoTien.toLocaleString() %> đ</span>
+                            </div>
+                            <div class="progress mb-2" style="height: 8px; border-radius: 10px;">
+                                <div class="progress-bar bg-success progress-bar-striped" 
+                                     style="width: <%= Math.min((item.soTienHienCo/item.mucTieuSoTien)*100, 100) %>%"></div>
+                            </div>
+                            <form action="/dashboard/savings/deposit/<%= item._id %>" method="POST" class="d-flex gap-2">
+                                <input type="number" name="soTienNap" class="form-control form-control-sm border-0 bg-light" placeholder="Số tiền nạp..." required>
+                                <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3">Nạp</button>
+                            </form>
+                        </div>
+                    <% }) %>
+                <% } else { %>
+                    <p class="text-muted small italic">Bạn chưa có mục tiêu tiết kiệm nào.</p>
+                <% } %>
+            </div>
+
+            <button class="btn btn-sm btn-outline-primary rounded-pill mt-2 fw-bold" data-bs-toggle="modal" data-bs-target="#addSavingModal">
+                + Thêm mục tiêu
+            </button>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm p-4 rounded-4 h-100 bg-primary text-white">
+            <h6 class="fw-bold mb-3"><i class="bi bi-lightbulb me-2"></i>Gợi ý tài chính (AI)</h6>
+            <ul class="list-unstyled mb-0">
+                <% if (typeof listLoiKhuyen !== 'undefined' && listLoiKhuyen.length > 0) { %>
+                    <% listLoiKhuyen.forEach(msg => { %>
+                        <li class="mb-2 d-flex align-items-start small">
+                            <i class="bi bi-check2-circle me-2 mt-1"></i>
+                            <span><%= msg %></span>
+                        </li>
+                    <% }) %>
+                <% } else { %>
+                    <li class="small italic">Đang phân tích dữ liệu của bạn...</li>
+                <% } %>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addSavingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4">
+            <div class="modal-header border-0 px-4 pt-4">
+                <h5 class="modal-title fw-bold">Mục tiêu tiết kiệm mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form action="/dashboard/savings/add" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">TÊN MỤC TIÊU</label>
+                        <input type="text" name="tenMucTieu" class="form-control border-0 bg-light py-2" placeholder="Ví dụ: Mua Laptop mới" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-muted">SỐ TIỀN CẦN TIẾT KIỆM (VNĐ)</label>
+                        <input type="number" name="mucTieuSoTien" class="form-control border-0 bg-light py-2" placeholder="20000000" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-pill">BẮT ĐẦU TIẾT KIỆM</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
     window.DASHBOARD_DATA = {

@@ -20,4 +20,22 @@ function soSanhThangTruoc(tongThangNay, tongThangTruoc) {
         thongDiep: chenhLech > 0 ? "Chi tiêu tăng so với tháng trước" : "Tiết kiệm tốt hơn tháng trước"
     };
 }
-module.exports = { phanTichTaiChinh, soSanhThangTruoc };
+
+function goiYChiTieu(tongChi, hanMuc, thongKeHangMuc) {
+    let loiKhuyen = [];
+    const phanTram = (tongChi / hanMuc) * 100;
+    if (phanTram > 90) {
+        loiKhuyen.push("Ngân sách của bạn đã chạm vùng đỏ. Hãy dừng ngay các khoản chi không thiết yếu.");
+    } else if (phanTram > 70) {
+        loiKhuyen.push("Bạn đang tiêu xài khá nhanh. Thử nấu ăn tại nhà để tiết kiệm thêm.");
+    }
+    if (thongKeHangMuc['Ăn uống'] > hanMuc * 0.4) {
+        loiKhuyen.push("Khoản 'Ăn uống' đang chiếm tỷ trọng lớn. Hãy cắt giảm để dồn tiền vào Quỹ tiết kiệm.");
+    }
+    if (loiKhuyen.length === 0) {
+        loiKhuyen.push("Phong độ tài chính rất tốt! Bạn có thể trích thêm 10% thu nhập vào quỹ dự phòng.");
+    }
+    return loiKhuyen;
+}
+
+module.exports = { phanTichTaiChinh, goiYChiTieu, soSanhThangTruoc };
