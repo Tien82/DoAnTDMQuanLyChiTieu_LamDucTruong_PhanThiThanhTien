@@ -101,5 +101,5 @@ mongoose.connect('mongodb://admin:admin123@ac-axtjcoj-shard-00-02.st92bky.mongod
 
 const PORT = 3000;
 app.listen(PORT, () => {
-    console.log(`🚀 Hệ thống SmartSpend AI đang chạy tại: http://localhost:${PORT}`);
+    console.log(`🚀 Hệ thống SmartSpend AI đang chạy tại: https://doanquanlychitieu-lamductruong-p4hc.onrender.com/:${PORT}`);
 });
