@@ -8,7 +8,7 @@ const ExpenseSchema = new mongoose.Schema({
         required: true 
     },
     soTien: { type: Number, required: true },
-    hangMuc: { type: String, required: true }, // Ăn uống, Di chuyển, Shopping...
+    hangMuc: { type: String, required: true }, 
     ghiChu: { type: String },
     ngayGiaoDich: { type: Date, default: Date.now },
     

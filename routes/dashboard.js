@@ -24,6 +24,6 @@ router.get('/dashboard', async (req, res) => {
         res.render('chart-test', { dataAI, soSanh });
 
     } catch (err) {
-        res.status(500).send("Lỗi tính toán rồi ný!");
+        res.status(500).send("Lỗi tính toán rồi bạn!");
     }
 });
