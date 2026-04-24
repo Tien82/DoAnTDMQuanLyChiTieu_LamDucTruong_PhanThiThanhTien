@@ -3,25 +3,25 @@ const router = express.Router();
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 
-// Trang hiển thị Đăng ký (GET)
 router.get('/register', (req, res) => {
-    res.render('auth/register');
+    const error = req.session.error;
+    delete req.session.error;
+    res.render('auth/register', { error });
 });
 
-// Xử lý dữ liệu Đăng ký (POST)
 router.post('/register', async (req, res) => {
     try {
         const { hoVaTen, tenDangNhap, matKhau, hanMucThang } = req.body;
 
-        // 1. Kiểm tra xem tên đăng nhập đã tồn tại chưa
         const userExists = await User.findOne({ tenDangNhap });
-        if (userExists) return res.send('Tên đăng nhập đã tồn tại!');
+        if (userExists) {
+            req.session.error = 'Tên đăng nhập đã tồn tại!';
+            return res.redirect('/auth/register');
+        }
 
-        // 2. MÃ HÓA MẬT KHẨU (Bcrypt)
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(matKhau, salt);
 
-        // 3. Lưu vào MongoDB Atlas
         const newUser = new User({
             hoVaTen,
             tenDangNhap,
@@ -31,46 +31,50 @@ router.post('/register', async (req, res) => {
         });
 
         await newUser.save();
-        res.redirect('/auth/login'); // Đăng ký xong thì qua trang đăng nhập
+        res.redirect('/auth/login');
 
     } catch (err) {
-        console.error(err);
-        res.status(500).send('Lỗi hệ thống khi đăng ký');
+        req.session.error = 'Lỗi hệ thống khi đăng ký';
+        res.redirect('/auth/register');
     }
 });
 
-// Trang hiển thị Đăng nhập (GET)
 router.get('/login', (req, res) => {
-    res.render('auth/login');
+    const error = req.session.error;
+    delete req.session.error;
+    res.render('auth/login', { error });
 });
 
-// Xử lý Đăng nhập (POST)
 router.post('/login', async (req, res) => {
     try {
         const { tenDangNhap, matKhau } = req.body;
 
-        // 1. Tìm user trong Database
         const user = await User.findOne({ tenDangNhap });
-        if (!user) return res.send('Tài khoản không tồn tại!');
+        if (!user) {
+            req.session.error = 'Tài khoản không tồn tại!';
+            return res.redirect('/auth/login');
+        }
 
-        // 2. Kiểm tra mật khẩu (So sánh bản nhập vào với bản đã mã hóa trong CSDL)
         const isMatch = await bcrypt.compare(matKhau, user.matKhau);
-        if (!isMatch) return res.send('Sai mật khẩu ný ơi!');
+        if (!isMatch) {
+            req.session.error = 'Sai mật khẩu ný ơi!';
+            return res.redirect('/auth/login');
+        }
 
-        // 3. TẠO SESSION (Lưu thông tin người dùng vào máy chủ)
         req.session.userId = user._id;
         req.session.username = user.hoVaTen;
         req.session.role = user.role;
         //req.session.role = 'admin'
         req.session.hanMuc = user.hanMucThang;
 
-        // 4. Đăng nhập xong thì phi thẳng ra Dashboard
         res.redirect('/dashboard');
 
     } catch (err) {
-        res.status(500).send('Lỗi đăng nhập');
+        req.session.error = 'Lỗi đăng nhập';
+        res.redirect('/auth/login');
     }
 });
+
 router.get('/logout', (req, res) => {
     req.session.destroy(); 
     res.redirect('/auth/login');

@@ -1,7 +1,8 @@
+const bcrypt = require('bcrypt');
 const express = require('express');
 const router = express.Router();
 const Expense = require('../models/Expense');
-const User = require('../models/User'); // Thêm model User để lấy hạn mức thật
+const User = require('../models/User'); 
 const { phanTichTaiChinh } = require('../utils/logicAI');
 const { phanTichChiTieu } = require('../utils/fptAI');
 
@@ -9,9 +10,8 @@ const multer = require('multer');
 const Tesseract = require('tesseract.js');
 const upload = multer({ dest: 'uploads/' });
 const fs = require('fs');
+const Notification = require('../models/Notification');
 
-
-// Middleware kiểm tra đăng nhập
 const checkAuth = (req, res, next) => {
     if (req.session && req.session.userId) {
         return next();
@@ -19,53 +19,149 @@ const checkAuth = (req, res, next) => {
     res.redirect('/auth/login');
 };
 
-// Middleware kiểm tra Admin
+// Middleware kiểm tra Admin (Phân quyền Role-based)
 const checkAdmin = (req, res, next) => {
-    // Phải qua cửa checkAuth trước, sau đó mới check tới quyền admin
     if (req.session && req.session.role === 'admin') {
         return next();
     }
-    res.status(403).send("🚫 Ný không phải Admin, đừng có mà 'hack' nhe!");
+    res.status(403).send("🚫 Bạn không phải Admin, không có quyền truy cập khu vực này!");
 };
 
-/**
- * Hàm hỗ trợ lấy dữ liệu AI dùng chung cho các trang
- * Giúp tránh lỗi undefined biến dataAI ở Header
- */
+router.get('/profile', checkAuth, async (req, res) => {
+    try {
+        const userData = await User.findById(req.session.userId);
+        const sharedData = await getSharedDataAI(req.session.userId, req.session.hanMuc);
+        
+        res.render('dashboard/profile', {
+            user: userData.hoVaTen,
+            tenDangNhap: userData.tenDangNhap,
+            role: req.session.role,
+            path: 'profile',
+            dataAI: sharedData.dataAI,
+            unreadCount: sharedData.unreadCount,
+            notifications: sharedData.notifications,
+            hanMuc: userData.hanMucThang
+        });
+    } catch (err) {
+        res.status(500).send("Lỗi tải hồ sơ");
+    }
+});
+
+router.post('/profile/budget', checkAuth, async (req, res) => {
+    try {
+        const newBudget = Number(req.body.hanMucThang);
+        await User.findByIdAndUpdate(req.session.userId, { hanMucThang: newBudget });
+        req.session.hanMuc = newBudget;
+        res.redirect('/dashboard/profile?msg=budget_success');
+    } catch (err) {
+        res.status(500).send("Không thể cập nhật hạn mức");
+    }
+});
+
+router.post('/profile/change-password', checkAuth, async (req, res) => {
+    try {
+        const { oldPassword, newPassword } = req.body;
+        const user = await User.findById(req.session.userId);
+        
+        const isMatch = await bcrypt.compare(oldPassword, user.matKhau);
+        if (!isMatch) {
+            return res.redirect('/dashboard/profile?msg=pw_wrong');
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPw = await bcrypt.hash(newPassword, salt);
+        
+        await User.findByIdAndUpdate(req.session.userId, { matKhau: hashedPw });
+        res.redirect('/dashboard/profile?msg=pw_success');
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Lỗi đổi mật khẩu hệ thống");
+    }
+});
+// 1. Cập nhật họ tên
+router.post('/profile/update', checkAuth, async (req, res) => {
+    try {
+        const { hoVaTen } = req.body;
+        await User.findByIdAndUpdate(req.session.userId, { hoVaTen });
+        req.session.username = hoVaTen; // Cập nhật lại session để menu hiện tên mới
+        res.redirect('/dashboard/profile?msg=update_success');
+    } catch (err) {
+        res.status(500).send("Không thể cập nhật hồ sơ");
+    }
+});
+
+// 2. Đổi mật khẩu (Đã gia cố để không bị lỗi trang trắng)
+router.post('/profile/change-password', checkAuth, async (req, res) => {
+    try {
+        const { oldPassword, newPassword } = req.body;
+        const user = await User.findById(req.session.userId);
+
+        const isMatch = await bcrypt.compare(oldPassword, user.matKhau);
+        if (!isMatch) {
+            return res.redirect('/dashboard/profile?msg=pw_wrong');
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPw = await bcrypt.hash(newPassword, salt);
+        
+        await User.findByIdAndUpdate(req.session.userId, { matKhau: hashedPw });
+        res.redirect('/dashboard/profile?msg=pw_success');
+    } catch (err) {
+        console.error("Lỗi đổi mật khẩu:", err);
+        res.status(500).send("Lỗi hệ thống khi đổi mật khẩu");
+    }
+});
+
+// 3. Xóa tài khoản
+router.post('/profile/delete-account', checkAuth, async (req, res) => {
+    try {
+        await Expense.deleteMany({ user: req.session.userId });
+        await Notification.deleteMany({ user: req.session.userId }); // Xóa luôn thông báo cho sạch dữ liệu
+        await User.findByIdAndDelete(req.session.userId);
+        req.session.destroy(); // Xóa sạch phiên đăng nhập
+        res.redirect('/auth/login?msg=account_deleted');
+    } catch (err) {
+        res.status(500).send("Không thể xóa tài khoản");
+    }
+});
 async function getSharedDataAI(userId, sessionHanMuc) {
     const expenses = await Expense.find({ user: userId });
+    const unreadCount = await Notification.countDocuments({ user: userId, isRead: false });
     const tongChiTieu = expenses
         .filter(item => item.soTien < 0)
         .reduce((sum, item) => sum + Math.abs(item.soTien), 0);
     const tongThuNhap = expenses
         .filter(item => item.soTien > 0)
         .reduce((sum, item) => sum + item.soTien, 0);
-    // Ưu tiên hạn mức từ session, nếu không có thì mặc định 5tr
+    
     const hanMuc = sessionHanMuc || 5000000;
     return {
         dataAI: phanTichTaiChinh(tongChiTieu, hanMuc),
         tongChiTieu,
         tongThuNhap,
+        unreadCount,
         hanMuc,
-        expenses // Trả về luôn để các route đỡ phải query lại
+        expenses
     };
 }
-
-
-
-// --- 1. TRANG DASHBOARD CHÍNH ---
+// Thêm Route để đánh dấu đã đọc khi người dùng bấm vào
+router.post('/notifications/read-all', checkAuth, async (req, res) => {
+    await Notification.updateMany({ user: req.session.userId, isRead: false }, { isRead: true });
+    res.json({ success: true });
+});
+// --- 1. TRANG TỔNG QUAN (DASHBOARD) ---
 router.get('/', checkAuth, async (req, res) => {
     try {
         const sharedData = await getSharedDataAI(req.session.userId, req.session.hanMuc);
         const { expenses, tongChiTieu, tongThuNhap, hanMuc, dataAI } = sharedData;
 
-        // Tổng hợp dữ liệu cho Biểu đồ (Doughnut Chart)
+        // Phân tích dữ liệu biểu đồ
         const thongKeHangMuc = {};
         expenses.filter(item => item.soTien < 0).forEach(item => {
             thongKeHangMuc[item.hangMuc] = (thongKeHangMuc[item.hangMuc] || 0) + Math.abs(item.soTien);
         });
 
-        // Lấy danh sách tọa độ cho Bản đồ (Map)
+        // Lấy tọa độ bản đồ cho các giao dịch gần đây
         const toaDoGiaoDich = expenses
             .filter(item => item.viTri && item.viTri.toaDo && item.viTri.toaDo.lat)
             .map(item => ({
@@ -90,59 +186,48 @@ router.get('/', checkAuth, async (req, res) => {
             mapData: toaDoGiaoDich
         });
     } catch (err) {
-        console.error("Lỗi Dashboard:", err);
-        res.status(500).send("Không thể tải Dashboard");
+        res.status(500).send("Lỗi tải trang tổng quan");
     }
 });
 
-// --- 2. TRANG LỊCH SỬ GIAO DỊCH ---
+// --- 2. TRANG LỊCH SỬ (HISTORY) ---
 router.get('/history', checkAuth, async (req, res) => {
     try {
-        // Lấy tất cả giao dịch của user từ Database
         let expenses = await Expense.find({ user: req.session.userId });
-        
-        // 1. Hứng 2 cái ngày từ thanh tìm kiếm (nếu ný có bấm nút Lọc)
-        let { tuNgay, denNgay } = req.query;
+        const { tuNgay, denNgay } = req.query;
 
-        // 2. Chạy bộ lọc
+        // Bộ lọc ngày tháng
         if (tuNgay || denNgay) {
             expenses = expenses.filter(item => {
                 let date = new Date(item.ngayGiaoDich);
                 let isValid = true;
-                
-                // Nếu có "Từ ngày", giao dịch phải xảy ra SAU ngày đó
-                if (tuNgay) {
-                    isValid = isValid && (date >= new Date(tuNgay));
-                }
-                
-                // Nếu có "Đến ngày", giao dịch phải xảy ra TRƯỚC 23:59:59 của ngày đó
+                if (tuNgay) isValid = isValid && (date >= new Date(tuNgay));
                 if (denNgay) {
                     let end = new Date(denNgay);
-                    end.setHours(23, 59, 59, 999); 
+                    end.setHours(23, 59, 59, 999);
                     isValid = isValid && (date <= end);
                 }
-                
-                return isValid; // Giữ lại những cái hợp lệ
+                return isValid;
             });
         }
 
-        // 3. Sắp xếp lại cho cái mới nhất lên đầu
         const sortedExpenses = expenses.sort((a, b) => b.ngayGiaoDich - a.ngayGiaoDich);
+        const sharedData = await getSharedDataAI(req.session.userId, req.session.hanMuc);
 
-        // 4. Trả dữ liệu ra file HTML
         res.render('dashboard/history', { 
             user: req.session.username, 
             path: 'history',
             expenses: sortedExpenses, 
-            tuNgay: tuNgay,   // Truyền ngược lại để ô input vẫn giữ ngày ný vừa gõ
-            denNgay: denNgay
+            tuNgay, 
+            denNgay,
+            dataAI: sharedData.dataAI
         });
     } catch (err) { 
         res.status(500).send("Lỗi tải lịch sử"); 
     }
 });
 
-// --- 3. TRANG HỒ SƠ (PROFILE) ---
+// --- 3. TRANG HỒ SƠ & CÀI ĐẶT ---
 router.get('/profile', checkAuth, async (req, res) => {
     try {
         const sharedData = await getSharedDataAI(req.session.userId, req.session.hanMuc);
@@ -150,230 +235,130 @@ router.get('/profile', checkAuth, async (req, res) => {
             user: req.session.username,
             path: 'profile',
             dataAI: sharedData.dataAI,
-            hanMuc: sharedData.hanMuc
+            hanMuc: sharedData.hanMuc,
+            role: req.session.role
         });
     } catch (err) {
         res.status(500).send("Lỗi tải hồ sơ");
     }
 });
 
-// --- 4. CẬP NHẬT HẠN MỨC (Trong trang Profile) ---
 router.post('/profile/budget', checkAuth, async (req, res) => {
     try {
-        const { hanMucThang } = req.body;
-        const newBudget = Number(hanMucThang);
-
-        // Cập nhật vào DB
+        const newBudget = Number(req.body.hanMucThang);
         await User.findByIdAndUpdate(req.session.userId, { hanMucThang: newBudget });
-
-        // Cập nhật vào Session để các trang khác nhận ngay lập tức
         req.session.hanMuc = newBudget;
-
         res.redirect('/dashboard/profile');
     } catch (err) {
-        console.error("Lỗi cập nhật hạn mức:", err);
         res.status(500).send("Không thể cập nhật hạn mức");
     }
 });
 
-// --- 5. NGHIỆP VỤ LƯU GIAO DỊCH (MANUAL) ---
+// --- 4. CÁC NGHIỆP VỤ NHẬP LIỆU (MANUAL/VOICE/OCR) ---
 router.post('/input/manual', checkAuth, async (req, res) => {
-    // 1. Khai báo hứng thêm biến billImageUrl từ Form gửi lên
-    const { soTien, hangMuc, ghiChu, loai, lat, lng, billImageUrl } = req.body;
-
+    const { soTien, hangMuc, ghiChu, loai, lat, lng, billImageUrl, tenQuan } = req.body;
     try {
         const newExpense = new Expense({
             user: req.session.userId,
-            soTien: loai === 'chi' ? -Number(soTien) : Number(soTien),
-            hangMuc: hangMuc,
-            ghiChu: ghiChu,
-            ngayGiaoDich: new Date(),
+            soTien: loai === 'chi' ? -Math.abs(Number(soTien)) : Math.abs(Number(soTien)),
+            hangMuc,
+            ghiChu,
             phuongThucNhap: 'manual',
             viTri: {
-                tenQuan: req.body.tenQuan || hangMuc,
-                toaDo: {
-                    lat: lat ? Number(lat) : null,
-                    lng: lng ? Number(lng) : null
-                }
+                tenQuan: tenQuan || hangMuc,
+                toaDo: { lat: lat ? Number(lat) : null, lng: lng ? Number(lng) : null }
             },
-            // 2. LƯU ĐƯỜNG LINK ẢNH VÀO DATABASE MONGODB
             billImage: billImageUrl || null
         });
-
         await newExpense.save();
-        res.redirect('/dashboard/history'); // Lưu xong đẩy qua trang Lịch sử coi luôn
+        res.redirect('/dashboard/history?msg=success');
     } catch (error) {
-        console.error("Lỗi lưu giao dịch:", error);
-        res.status(500).send("Lỗi server");
-    }
-});
-// --- 6. NGHIỆP VỤ XÓA GIAO DỊCH ---
-router.post('/delete/:id', checkAuth, async (req, res) => {
-    try {
-        await Expense.findOneAndDelete({ _id: req.params.id, user: req.session.userId });
-        res.redirect('/dashboard/history');
-    } catch (err) {
-        console.error("Lỗi xóa DB:", err);
-        res.status(500).send("Không xóa được giao dịch!");
+        res.status(500).send("Lỗi lưu giao dịch");
     }
 });
 
-// --- 7. XỬ LÝ NHẬP LIỆU GIỌNG NÓI ---
 router.post('/input/voice', checkAuth, async (req, res) => {
     try {
         const { text } = req.body;
-        if (!text) return res.status(400).json({ success: false, message: "Không nghe thấy gì!" });
+        if (!text) return res.status(400).json({ success: false });
 
         const ketQuaAI = await phanTichChiTieu(text);
-
         if (ketQuaAI) {
             const newExpense = new Expense({
                 user: req.session.userId,
                 soTien: -Math.abs(ketQuaAI.soTien),
                 hangMuc: ketQuaAI.hangMuc,
                 ghiChu: `Nhập bằng giọng nói: "${text}"`,
-                phuongThucNhap: 'voice',
-                ngayGiaoDich: new Date()
+                phuongThucNhap: 'voice'
             });
-
             await newExpense.save();
-            return res.json({ success: true, data: ketQuaAI });
+            return res.json({ success: true });
         }
-        res.status(422).json({ success: false, message: "AI không hiểu ý ný..." });
+        res.status(422).json({ success: false });
     } catch (err) {
-        console.error("Lỗi Voice AI:", err);
-        res.status(500).json({ success: false, message: "Lỗi hệ thống!" });
-    }
-});
-// --- 8. TRANG BẢN ĐỒ CHI TIÊU FULL ---
-router.get('/map', checkAuth, async (req, res) => {
-    try {
-        const sharedData = await getSharedDataAI(req.session.userId, req.session.hanMuc);
-
-        // Lấy tất cả giao dịch có tọa độ để đưa lên bản đồ lớn
-        const toaDoGiaoDich = sharedData.expenses
-            .filter(item => item.viTri && item.viTri.toaDo && item.viTri.toaDo.lat)
-            .map(item => ({
-                id: item._id, // Quan trọng: Gửi kèm ID để sửa/xóa
-                lat: item.viTri.toaDo.lat,
-                lng: item.viTri.toaDo.lng,
-                tenQuan: item.viTri.tenQuan || item.hangMuc,
-                soTien: Math.abs(item.soTien),
-                ghiChu: item.ghiChu || "Không có ghi chú"
-            }));
-
-        res.render('dashboard/map', {
-            user: req.session.username,
-            path: 'map',
-            mapData: toaDoGiaoDich,
-            dataAI: sharedData.dataAI // Để Header không bị lỗi mồ côi
-        });
-    } catch (err) {
-        console.error("Lỗi trang Map:", err);
-        res.status(500).send("Lỗi tải bản đồ");
-    }
-});
-
-// --- 9. CẬP NHẬT TRỰC TIẾP TỪ BẢN ĐỒ ---
-router.post('/map/update/:id', checkAuth, async (req, res) => {
-    try {
-        await Expense.findOneAndUpdate(
-            { _id: req.params.id, user: req.session.userId },
-            {
-                soTien: -Math.abs(Number(req.body.giaMoi)), // Đảm bảo luôn là số âm (chi tiêu)
-                "viTri.tenQuan": req.body.tenQuanMoi
-            }
-        );
-        res.redirect('/dashboard/map');
-    } catch (err) {
-        res.status(500).send("Lỗi cập nhật giá trên bản đồ");
-    }
-});
-
-
-router.post('/scan-bill', upload.single('billImage'), async (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ success: false });
-        }
-
-        const { data: { text } } = await Tesseract.recognize(
-            req.file.path,
-            'vie'
-        );
-
-        const numberMatches = text.match(/\d{1,3}([,.]\d{3})+/g);
-        let maxAmount = 0;
-
-        if (numberMatches) {
-            numberMatches.forEach(match => {
-                const num = parseInt(match.replace(/[,.]/g, ''));
-                if (num > maxAmount) {
-                    maxAmount = num;
-                }
-            });
-        }
-
-        res.json({
-            success: true,
-            rawText: text,
-            suggestedAmount: maxAmount
-        });
-    } catch (error) {
         res.status(500).json({ success: false });
     }
 });
 
-// --- 10. XỬ LÝ NHẬP LIỆU ẢNH HÓA ĐƠN (OCR) ---
 router.post('/input/ocr', checkAuth, upload.single('billImage'), async (req, res) => {
     try {
-        if (!req.file) return res.status(400).json({ success: false, message: "Không tìm thấy ảnh!" });
+        if (!req.file) return res.status(400).json({ success: false });
 
         const result = await Tesseract.recognize(req.file.path, 'vie+eng');
-        const text = result.data.text;
-        const lines = text.split('\n');
+        const text = result.data.text.toLowerCase();
         
         let tongTien = 0;
         let hangMuc = 'Mua sắm';
 
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].toLowerCase();
-            if (line.match(/total|tổng|cộng|cash/)) {
-                const numbers = (lines[i] + ' ' + (lines[i+1] || '')).match(/\d+[\d.]*/g);
-                if (numbers) {
-                    const rawNum = numbers[numbers.length - 1];
-                    const val = parseInt(rawNum.replace(/\./g, ''));
-                    if (val > 1000 && val < 5000000 && rawNum.length < 9) {
-                        tongTien = val;
-                        break;
-                    }
-                }
-            }
+        // Phân tích sơ bộ số tiền từ văn bản quét được
+        const numbers = text.match(/\d+[\d.]*/g);
+        if (numbers) {
+            const possibleAmounts = numbers.map(n => parseInt(n.replace(/\./g, ''))).filter(n => n > 1000);
+            tongTien = possibleAmounts.length > 0 ? Math.max(...possibleAmounts) : 0;
         }
 
-        // Nhận diện hạng mục
-        const textLower = text.toLowerCase();
-        if (textLower.match(/trà|sữa|cafe|muoi house|food|cơm|phở/)) hangMuc = 'Ăn uống';
-        else if (textLower.match(/grab|be|xe ôm|ship|km/)) hangMuc = 'Di chuyển';
-
-        // Xóa ảnh tạm sau khi quét xong
+        if (text.match(/trà|sữa|cafe|food|cơm|phở/)) hangMuc = 'Ăn uống';
         if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
         
-        // TRẢ KẾ QUẢ VỀ CHO MODAL XÁC NHẬN (KHÔNG LƯU DB Ở ĐÂY)
         res.json({ success: true, data: { soTien: tongTien, hangMuc: hangMuc } });
-
     } catch (err) {
-        console.error("Lỗi OCR:", err);
-        res.status(500).json({ success: false, message: "Lỗi hệ thống!" });
+        res.status(500).json({ success: false });
     }
 });
 
-// --- 11. TRANG QUẢN TRỊ ADMIN (TỔNG QUAN HỆ THỐNG) ---
+// --- 5. QUẢN LÝ GIAO DỊCH (SỬA/XÓA) ---
+router.post('/edit/:id', checkAuth, async (req, res) => {
+    try {
+        const { hangMuc, ghiChu, tenQuan, lat, lng } = req.body;
+        await Expense.findOneAndUpdate(
+            { _id: req.params.id, user: req.session.userId },
+            {
+                hangMuc,
+                ghiChu,
+                "viTri.tenQuan": tenQuan,
+                "viTri.toaDo.lat": lat ? Number(lat) : null,
+                "viTri.toaDo.lng": lng ? Number(lng) : null
+            }
+        );
+        res.redirect('/dashboard/history?msg=updated');
+    } catch (err) {
+        res.status(500).send("Lỗi cập nhật");
+    }
+});
+
+router.post('/delete/:id', checkAuth, async (req, res) => {
+    try {
+        await Expense.findOneAndDelete({ _id: req.params.id, user: req.session.userId });
+        res.redirect('/dashboard/history');
+    } catch (err) {
+        res.status(500).send("Lỗi xóa giao dịch");
+    }
+});
+
+// --- 6. TRANG QUẢN TRỊ (ADMIN ONLY) ---
 router.get('/admin/stats', checkAuth, checkAdmin, async (req, res) => {
     try {
-        // Ný phải để dòng này Ở ĐÂY nè!
         const allExpenses = await Expense.find().populate('user'); 
-        
         const totalUsers = await User.countDocuments();
         const stats = {
             totalUsers,
@@ -388,8 +373,32 @@ router.get('/admin/stats', checkAuth, checkAdmin, async (req, res) => {
             allExpenses 
         });
     } catch (err) {
-        console.error(err);
-        res.status(500).send("Lỗi Admin");
+        res.status(500).send("Lỗi hệ thống Admin");
+    }
+});
+router.get('/map', checkAuth, async (req, res) => {
+    try {
+        const sharedData = await getSharedDataAI(req.session.userId, req.session.hanMuc);
+        
+        // Chỉ lấy những giao dịch CÓ tọa độ
+        const mapData = sharedData.expenses
+            .filter(item => item.viTri && item.viTri.toaDo && item.viTri.toaDo.lat)
+            .map(item => ({
+                lat: item.viTri.toaDo.lat,
+                lng: item.viTri.toaDo.lng,
+                tenQuan: item.viTri.tenQuan,
+                soTien: Math.abs(item.soTien),
+                ghiChu: item.ghiChu
+            }));
+
+        res.render('dashboard/map', {
+            user: req.session.username,
+            path: 'map',
+            mapData: mapData, // Gửi mảng này sang
+            ...sharedData
+        });
+    } catch (err) {
+        res.status(500).send("Lỗi bản đồ");
     }
 });
 module.exports = router;

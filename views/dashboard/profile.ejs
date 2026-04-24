@@ -15,20 +15,20 @@
                         </span>
                     </div>
                     <h5 class="fw-bold mt-3 mb-0"><%= user %></h5>
-                    <p class="text-muted small">Thành viên từ 2024</p>
+                    <p class="text-muted small">Thành viên từ 2026</p>
                 </div>
 
                 <form action="/dashboard/profile/update" method="POST">
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-muted">HỌ VÀ TÊN</label>
-                        <input type="text" name="hoVaTen" class="form-control border-0 bg-light py-2" value="<%= user %>">
+                        <input type="text" name="hoVaTen" class="form-control border-0 bg-light py-2" value="<%= user %>" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-muted">TÊN ĐĂNG NHẬP</label>
-                        <input type="text" class="form-control border-0 bg-light py-2" value="user_demo" disabled>
+                        <input type="text" class="form-control border-0 bg-light py-2 text-muted" value="<%= tenDangNhap %>" disabled style="cursor: not-allowed;">
                         <small class="text-info" style="font-size: 0.7rem;">Tên đăng nhập không thể thay đổi</small>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold rounded-pill mt-3">Cập nhật hồ sơ</button>
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold rounded-pill mt-3 btn-action">Cập nhật hồ sơ</button>
                 </form>
             </div>
         </div>
@@ -36,27 +36,103 @@
         <div class="col-md-6">
             <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: 20px;">
                 <h6 class="fw-bold mb-3"><i class="bi bi-piggy-bank text-success me-2"></i>Quản lý hạn mức</h6>
-                <p class="text-muted small">Thiết lập số tiền tối đa ný muốn tiêu trong một tháng để hệ thống AI cảnh báo kịp thời.</p>
+                <p class="text-muted small">Thiết lập số tiền tối đa bạn muốn tiêu trong một tháng để hệ thống AI cảnh báo kịp thời.</p>
                 
                 <form action="/dashboard/profile/budget" method="POST">
                     <div class="mb-4">
                         <label class="form-label small fw-bold text-muted">HẠN MỨC THÁNG (VNĐ)</label>
                         <div class="input-group">
-                            <input type="number" name="hanMucThang" class="form-control border-0 bg-light py-2" value="5000000">
+                            <input type="number" name="hanMucThang" class="form-control border-0 bg-light py-2" value="<%= hanMuc %>" required>
                             <span class="input-group-text border-0 bg-light fw-bold">VNĐ</span>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-success w-100 py-2 fw-bold rounded-pill">Lưu hạn mức mới</button>
+                    <button type="submit" class="btn btn-success w-100 py-2 fw-bold rounded-pill btn-action">Lưu hạn mức mới</button>
                 </form>
             </div>
 
             <div class="card border-0 shadow-sm p-4" style="border-radius: 20px;">
                 <h6 class="fw-bold mb-3"><i class="bi bi-shield-lock text-warning me-2"></i>Bảo mật</h6>
-                <button class="btn btn-outline-secondary w-100 py-2 fw-bold rounded-pill mb-2">Đổi mật khẩu</button>
-                <button class="btn btn-outline-danger w-100 py-2 fw-bold rounded-pill">Xóa tài khoản</button>
+                
+                <button class="btn btn-outline-secondary w-100 py-2 fw-bold rounded-pill mb-2 btn-action" 
+                        data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                    Đổi mật khẩu
+                </button>
+
+                <form action="/dashboard/profile/delete-account" method="POST" id="deleteAccountForm">
+                    <button type="button" onclick="confirmDeleteAccount()" class="btn btn-outline-danger w-100 py-2 fw-bold rounded-pill btn-action">
+                        Xóa tài khoản
+                    </button>
+                </form>
             </div>
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4">
+            <div class="modal-header border-0 p-4 pb-0">
+                <h5 class="modal-title fw-bold">Thiết lập mật khẩu mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form action="/dashboard/profile/change-password" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">MẬT KHẨU CŨ</label>
+                        <input type="password" name="oldPassword" class="form-control border-0 bg-light" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-muted">MẬT KHẨU MỚI</label>
+                        <input type="password" name="newPassword" class="form-control border-0 bg-light" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold rounded-pill">Xác nhận thay đổi</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    // Xử lý hiển thị thông báo từ Server gửi về URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const msg = urlParams.get('msg');
+
+    const toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true
+    });
+
+    if (msg === 'update_success') {
+        toast.fire({ icon: 'success', title: 'Đã cập nhật thông tin cá nhân!' });
+    } else if (msg === 'pw_success') {
+        Swal.fire({ icon: 'success', title: 'Thành công', text: 'Mật khẩu đã được thay đổi!', timer: 2000, showConfirmButton: false });
+    } else if (msg === 'pw_wrong') {
+        Swal.fire({ icon: 'error', title: 'Thất bại', text: 'Mật khẩu cũ không chính xác!' });
+    } else if (msg === 'budget_success') {
+        toast.fire({ icon: 'success', title: 'Hạn mức mới đã được áp dụng!' });
+    }
+
+    // Hàm xác nhận xóa tài khoản
+    function confirmDeleteAccount() {
+        Swal.fire({
+            title: 'Bạn chắc chắn chứ?',
+            text: "Toàn bộ dữ liệu chi tiêu của bạn sẽ bị xóa vĩnh viễn và không thể khôi phục!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Vẫn xóa tài khoản',
+            cancelButtonText: 'Hủy bỏ'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('deleteAccountForm').submit();
+            }
+        })
+    }
+</script>
 
 <%- include('../partials/footer') %>

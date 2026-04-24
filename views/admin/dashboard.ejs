@@ -41,7 +41,7 @@
                             <% allExpenses.forEach(item => { %>
                                 <tr>
                                     <td>
-                                        <strong><%= item.user ? (item.user.hoVaTen || item.user.tenDangNhap || item.user.username) : 'Ný ẩn danh' %></strong>
+                                        <strong><%= item.user ? (item.user.hoVaTen || item.user.tenDangNhap || item.user.username) : 'Bạn ẩn danh' %></strong>
                                     </td>
                                     <td><span class="badge bg-info-subtle text-info"><%= item.hangMuc %></span></td>
                                     <td class="<%= item.soTien < 0 ? 'text-danger' : 'text-success' %> fw-bold">

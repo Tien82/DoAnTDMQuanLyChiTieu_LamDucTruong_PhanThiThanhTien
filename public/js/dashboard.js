@@ -111,49 +111,80 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // 4. TRỢ LÝ GIỌNG NÓI
-    const voiceBtn = document.getElementById('btn-voice');
-    const liveText = document.getElementById('live-text');
-    const voiceModalElement = document.getElementById('voiceModal');
+   const voiceBtn = document.getElementById('btn-voice');
+const liveText = document.getElementById('live-text');
+const voiceModalElement = document.getElementById('voiceModal');
 
-    if (voiceBtn && voiceModalElement) {
-        if ('webkitSpeechRecognition' in window) {
-            const voiceModal = new bootstrap.Modal(voiceModalElement);
-            const recognition = new webkitSpeechRecognition();
-            recognition.lang = 'vi-VN'; recognition.continuous = false; recognition.interimResults = true;
-            
-            voiceBtn.onclick = () => { liveText.innerText = "Hãy nói gì đó..."; voiceModal.show(); recognition.start(); voiceBtn.classList.add('recording'); };
+if (voiceBtn && voiceModalElement) {
+    if ('webkitSpeechRecognition' in window) {
+        const voiceModal = new bootstrap.Modal(voiceModalElement);
+        const recognition = new webkitSpeechRecognition();
+        recognition.lang = 'vi-VN'; 
+        recognition.continuous = false; 
+        recognition.interimResults = true;
+        
+        voiceBtn.onclick = () => { 
+            liveText.innerText = "Hãy nói gì đó..."; 
+            voiceModal.show(); 
+            recognition.start(); 
+            voiceBtn.classList.add('recording'); 
+        };
 
-            recognition.onresult = (e) => {
-                let interim = ''; let final = '';
-                for (let i = e.resultIndex; i < e.results.length; ++i) {
-                    if (e.results[i].isFinal) final += e.results[i][0].transcript;
-                    else interim += e.results[i][0].transcript;
-                }
-                liveText.innerHTML = `<span class="text-white fw-bold">${final}</span> <span class="opacity-50">${interim}</span>`;
-                if (final !== '') {
-                    recognition.stop(); voiceBtn.classList.remove('recording');
-                    fetch('/dashboard/input/voice', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: final }) })
-                        .then(res => res.json()).then(r => { if (r.success) location.reload(); else liveText.innerText = "AI chưa hiểu ný ơi!"; });
-                }
-            };
-            recognition.onerror = () => { voiceModal.hide(); voiceBtn.classList.remove('recording'); };
-        } else {
-            voiceBtn.onclick = () => alert("⚠️ Trình duyệt không hỗ trợ nhận diện giọng nói! Vui lòng dùng Chrome/Edge.");
-        }
-    }
-
-    // 5. TỰ ĐỘNG LẤY TỌA ĐỘ KHI MỞ MODAL NHẬP TAY
-    const manualModalEl = document.getElementById('manualModal');
-    if(manualModalEl) {
-        manualModalEl.addEventListener('shown.bs.modal', function () {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(pos) {
-                    document.getElementById('latInput').value = pos.coords.latitude;
-                    document.getElementById('lngInput').value = pos.coords.longitude;
+        recognition.onresult = (e) => {
+            let interim = ''; 
+            let final = '';
+            for (let i = e.resultIndex; i < e.results.length; ++i) {
+                if (e.results[i].isFinal) final += e.results[i][0].transcript;
+                else interim += e.results[i][0].transcript;
+            }
+            liveText.innerHTML = `<span class="text-white fw-bold">${final}</span> <span class="opacity-50">${interim}</span>`;
+            if (final !== '') {
+                recognition.stop(); 
+                voiceBtn.classList.remove('recording');
+                fetch('/dashboard/input/voice', { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ text: final }) 
+                })
+                .then(res => res.json())
+                .then(r => { 
+                    if (r.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Thành công!',
+                            text: 'Đã ghi nhận giao dịch bằng giọng nói.',
+                            timer: 2000,
+                            showConfirmButton: false,
+                            backdrop: `rgba(0,0,123,0.2)`
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        liveText.innerText = "AI chưa hiểu ný ơi!"; 
+                    }
                 });
             }
-        });
+        };
+        recognition.onerror = () => { 
+            voiceModal.hide(); 
+            voiceBtn.classList.remove('recording'); 
+        };
+    } else {
+        voiceBtn.onclick = () => alert("⚠️ Trình duyệt không hỗ trợ nhận diện giọng nói! Vui lòng dùng Chrome/Edge.");
     }
+}
+
+const manualModalEl = document.getElementById('manualModal');
+if(manualModalEl) {
+    manualModalEl.addEventListener('shown.bs.modal', function () {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(pos) {
+                document.getElementById('latInput').value = pos.coords.latitude;
+                document.getElementById('lngInput').value = pos.coords.longitude;
+            });
+        }
+    });
+}
 
     // 5.5. TÍNH NĂNG MINI-MAP: CHỌN TRỰC TIẾP TỌA ĐỘ VÀ REVERSE GEOCODING
     let miniMap = null;
